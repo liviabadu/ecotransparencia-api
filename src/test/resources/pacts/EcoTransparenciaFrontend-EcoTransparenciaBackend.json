@@ -1,0 +1,779 @@
+{
+  "consumer": {
+    "name": "EcoTransparenciaFrontend"
+  },
+  "interactions": [
+    {
+      "description": "a request to search by CNPJ",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with CNPJ 11222333000181 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "11222333000181"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentável Ltda",
+              "occurrences": [
+                {
+                  "category": "Ambiental IBAMA",
+                  "date": "2023-06-15T00:00:00.000Z",
+                  "description": "Advertência por descarte irregular de resíduos",
+                  "id": "occ-1",
+                  "source": "IBAMA",
+                  "sourceUrl": "https://ibama.gov.br/consulta/123456",
+                  "status": "Baixado"
+                }
+              ],
+              "riskLevel": "Baixo",
+              "score": 15
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to search by CPF",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a person with CPF 12345678909 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "12345678909"
+          ],
+          "type": [
+            "cpf"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "document": "12345678909",
+              "documentType": "cpf",
+              "id": "5",
+              "name": "João da Silva Teste",
+              "occurrences": [
+                {
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-02-15T00:00:00.000Z",
+                  "description": "Auto de infração por pesca ilegal em área protegida",
+                  "id": "occ-16",
+                  "source": "IBAMA",
+                  "sourceUrl": "https://ibama.gov.br/consulta/890123",
+                  "status": "Ativo"
+                }
+              ],
+              "riskLevel": "Médio",
+              "score": 35
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to search by name",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with name containing \"Empresa Verde\" exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/name",
+        "query": {
+          "name": [
+            "Empresa Verde"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentável Ltda",
+              "occurrences": [
+                {
+                  "category": "Ambiental IBAMA",
+                  "date": "2023-06-15T00:00:00.000Z",
+                  "description": "Advertência por descarte irregular de resíduos",
+                  "id": "occ-1",
+                  "source": "IBAMA",
+                  "sourceUrl": "https://ibama.gov.br/consulta/123456",
+                  "status": "Baixado"
+                }
+              ],
+              "riskLevel": "Baixo",
+              "score": 15
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to search by non-existent CNPJ",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no entity with CNPJ 00000000000000 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "00000000000000"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "found": false
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to search by non-existent name",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no entity with name \"Entidade Inexistente XYZ\" exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/name",
+        "query": {
+          "name": [
+            "Entidade Inexistente XYZ"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "found": false
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request to search entity with critical risk",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with critical risk level exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "44555666000181"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "document": "44555666000181",
+              "documentType": "cnpj",
+              "id": "4",
+              "name": "Mineradora Vermelha S.A.",
+              "occurrences": [
+                {
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-06-01T00:00:00.000Z",
+                  "description": "Embargo total de atividades por contaminação",
+                  "id": "occ-8",
+                  "source": "IBAMA",
+                  "sourceUrl": "https://ibama.gov.br/consulta/456780",
+                  "status": "Ativo"
+                }
+              ],
+              "riskLevel": "Crítico",
+              "score": 89
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.4.28",
+      "models": "1.3.5"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "EcoTransparenciaBackend"
+  }
+}
