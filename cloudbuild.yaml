@@ -1,7 +1,7 @@
 steps:
   # Step 1: Download CSV from GCS bucket
   - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['cp', 'gs://ecotransparencia/areas_embargadas.csv', 'docs/ibama/areas_embargadas.csv']
+    args: ['cp', 'gs://ecotransparencia2/areas_embargadas.csv', 'docs/ibama/areas_embargadas.csv']
 
   # Step 2: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
