@@ -27,7 +27,6 @@ public class SearchResource {
     @GET
     @Path("/name")
     public SearchResponse searchByName(@QueryParam("name") String name) {
-        // Will be implemented in US-003
-        return SearchResponse.notFound();
+        return searchService.searchByName(name);
     }
 }

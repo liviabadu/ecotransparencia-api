@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * Currently testing:
  * - US-001 (Search by CNPJ)
  * - US-002 (Search by CPF)
+ * - US-003 (Search by Name)
  *
  * Filter pattern matches interaction descriptions.
  * To enable more interactions, update the @PactFilter regex.
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @QuarkusTest
 @Provider("EcoTransparenciaBackend")
 @PactFolder("src/test/resources/pacts")
-@PactFilter(".*(CNPJ|CPF).*")  // US-001 & US-002: CNPJ and CPF search enabled
+@PactFilter(".*(CNPJ|CPF|name).*")  // US-001, US-002 & US-003: CNPJ, CPF and name search enabled
 @VerificationReports({"console"})
 class ProviderPactVerificationTest {
 
@@ -107,11 +108,32 @@ class ProviderPactVerificationTest {
         });
     }
 
-    // ==================== US-003: Search by Name (disabled) ====================
+    // ==================== US-003: Search by Name ====================
 
     @State("an entity with name containing \"Empresa Verde\" exists")
     void setupEntityWithName() {
-        // US-003: Not implemented yet
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+
+            Embargo embargo = new Embargo();
+            embargo.setSeqTad(1L);
+            embargo.setNumTad("12345");
+            embargo.setSerTad("A");
+            embargo.setNomePessoaEmbargada("Empresa Verde Sustentável Ltda");
+            embargo.setCpfCnpjEmbargado("11222333000181");
+            embargo.setTpAreaEmbargada("Ambiental IBAMA");
+            embargo.setDatEmbargo(java.time.LocalDateTime.of(2023, 6, 15, 0, 0));
+            embargo.setDesTad("Advertência por descarte irregular de resíduos");
+            embargo.setSigUfTad("SP");
+            embargo.setNomMunicipioTad("São Paulo");
+            embargo.setSitDesmatamento("N");
+            embargo.setQtdAreaEmbargada(java.math.BigDecimal.valueOf(5.5));
+            embargo.setNumAutoInfracao("123456");
+            embargo.setSerAutoInfracao("A");
+
+            repository.persist(embargo);
+        });
     }
 
     // ==================== US-004: Not Found scenarios (disabled) ====================
@@ -123,7 +145,11 @@ class ProviderPactVerificationTest {
 
     @State("no entity with name \"Entidade Inexistente XYZ\" exists")
     void setupNoEntityWithName() {
-        // US-004: Not implemented yet
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+            // No data inserted - entity should not be found
+        });
     }
 
     // ==================== US-005: Critical Risk (disabled) ====================

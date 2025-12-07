@@ -32,6 +32,32 @@ public class SearchService {
         return SearchResponse.found(entity);
     }
 
+    public SearchResponse searchByName(String name) {
+        List<Embargo> embargos = embargoRepository.findByNameContaining(name);
+
+        if (embargos.isEmpty()) {
+            return SearchResponse.notFound();
+        }
+
+        Embargo first = embargos.get(0);
+        String document = first.getCpfCnpjEmbargado();
+        String documentType = inferDocumentType(document);
+
+        EntityDto entity = buildEntityDto(embargos, document, documentType);
+        return SearchResponse.found(entity);
+    }
+
+    String inferDocumentType(String document) {
+        if (document == null) {
+            return "unknown";
+        }
+        return switch (document.length()) {
+            case 11 -> "cpf";
+            case 14 -> "cnpj";
+            default -> "unknown";
+        };
+    }
+
     private EntityDto buildEntityDto(List<Embargo> embargos, String document, String type) {
         Embargo first = embargos.get(0);
 
