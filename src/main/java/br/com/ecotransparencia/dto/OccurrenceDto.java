@@ -1,5 +1,7 @@
 package br.com.ecotransparencia.dto;
 
+import java.math.BigDecimal;
+
 public class OccurrenceDto {
 
     private String id;
@@ -10,18 +12,14 @@ public class OccurrenceDto {
     private String sourceUrl;
     private String status;
 
-    public OccurrenceDto() {
-    }
+    // US-006: Campos adicionais
+    private String autoInfracao;
+    private Boolean desmatamento;
+    private BigDecimal areaEmbargada;
+    private String biome;
+    private LocationDto location;
 
-    public OccurrenceDto(String id, String category, String date, String description,
-                         String source, String sourceUrl, String status) {
-        this.id = id;
-        this.category = category;
-        this.date = date;
-        this.description = description;
-        this.source = source;
-        this.sourceUrl = sourceUrl;
-        this.status = status;
+    public OccurrenceDto() {
     }
 
     public String getId() {
@@ -78,5 +76,45 @@ public class OccurrenceDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAutoInfracao() {
+        return autoInfracao;
+    }
+
+    public void setAutoInfracao(String autoInfracao) {
+        this.autoInfracao = autoInfracao;
+    }
+
+    public Boolean getDesmatamento() {
+        return desmatamento;
+    }
+
+    public void setDesmatamento(Boolean desmatamento) {
+        this.desmatamento = desmatamento;
+    }
+
+    public BigDecimal getAreaEmbargada() {
+        return areaEmbargada;
+    }
+
+    public void setAreaEmbargada(BigDecimal areaEmbargada) {
+        this.areaEmbargada = areaEmbargada;
+    }
+
+    public String getBiome() {
+        return biome;
+    }
+
+    public void setBiome(String biome) {
+        this.biome = biome;
+    }
+
+    public LocationDto getLocation() {
+        return location;
+    }
+
+    public void setLocation(LocationDto location) {
+        this.location = location;
     }
 }

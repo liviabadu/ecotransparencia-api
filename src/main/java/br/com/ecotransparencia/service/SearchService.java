@@ -1,6 +1,7 @@
 package br.com.ecotransparencia.service;
 
 import br.com.ecotransparencia.dto.EntityDto;
+import br.com.ecotransparencia.dto.LocationDto;
 import br.com.ecotransparencia.dto.OccurrenceDto;
 import br.com.ecotransparencia.dto.SearchResponse;
 import br.com.ecotransparencia.entity.Embargo;
@@ -89,7 +90,36 @@ public class SearchService {
         dto.setSource(SOURCE);
         dto.setSourceUrl(SOURCE_URL + embargo.getNumAutoInfracao());
         dto.setStatus(determineStatus(embargo));
+
+        // US-006: Campos adicionais
+        dto.setAutoInfracao(formatAutoInfracao(embargo));
+        dto.setDesmatamento("D".equals(embargo.getSitDesmatamento()));
+        dto.setAreaEmbargada(embargo.getQtdAreaEmbargada());
+        dto.setBiome(embargo.getDesTipoBioma());
+        dto.setLocation(buildLocation(embargo));
+
         return dto;
+    }
+
+    private String formatAutoInfracao(Embargo embargo) {
+        String num = embargo.getNumAutoInfracao();
+        String ser = embargo.getSerAutoInfracao();
+        if (num == null) return null;
+        if (ser == null || ser.isEmpty()) return num;
+        return num + "-" + ser;
+    }
+
+    private LocationDto buildLocation(Embargo embargo) {
+        if (embargo.getSigUfTad() == null &&
+            embargo.getNomMunicipioTad() == null &&
+            embargo.getNomeImovel() == null) {
+            return null;
+        }
+        LocationDto location = new LocationDto();
+        location.setUf(embargo.getSigUfTad());
+        location.setMunicipio(embargo.getNomMunicipioTad());
+        location.setImovel(embargo.getNomeImovel());
+        return location;
     }
 
     private String formatDate(Embargo embargo) {

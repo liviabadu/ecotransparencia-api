@@ -73,6 +73,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- OpenCSV for CSV parsing -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.9</version>
+        </dependency>
+
         <!-- Pact consumer & provider for contract testing -->
         <dependency>
             <groupId>au.com.dius.pact.consumer</groupId>
