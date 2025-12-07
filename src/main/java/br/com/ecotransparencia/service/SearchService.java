@@ -108,13 +108,24 @@ public class SearchService {
     int calculateRiskScore(List<Embargo> embargos) {
         int score = 0;
 
-        // +10 per embargo
-        score += embargos.size() * 10;
-
-        // +5 if deforestation related
         for (Embargo embargo : embargos) {
+            // +10 per embargo (base)
+            score += 10;
+
+            // +5 if deforestation related (SIT_DESMATAMENTO = 'D')
             if ("D".equals(embargo.getSitDesmatamento())) {
                 score += 5;
+            }
+
+            // +3 if Amazônia biome (COD_TIPO_BIOMA = 4)
+            if (embargo.getCodTipoBioma() != null && embargo.getCodTipoBioma() == 4) {
+                score += 3;
+            }
+
+            // +1 per 10 hectares embargoed area (max +10)
+            if (embargo.getQtdAreaEmbargada() != null) {
+                int areaPoints = Math.min(embargo.getQtdAreaEmbargada().intValue() / 10, 10);
+                score += areaPoints;
             }
         }
 

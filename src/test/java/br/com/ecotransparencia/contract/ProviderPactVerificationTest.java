@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * - US-001 (Search by CNPJ)
  * - US-002 (Search by CPF)
  * - US-003 (Search by Name)
+ * - US-005 (Critical Risk Level)
  *
  * Filter pattern matches interaction descriptions.
  * To enable more interactions, update the @PactFilter regex.
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @QuarkusTest
 @Provider("EcoTransparenciaBackend")
 @PactFolder("src/test/resources/pacts")
-@PactFilter(".*(CNPJ|CPF|name).*")  // US-001, US-002 & US-003: CNPJ, CPF and name search enabled
+@PactFilter(".*(CNPJ|CPF|name|critical).*")  // US-001 to US-005: CNPJ, CPF, name search and critical risk
 @VerificationReports({"console"})
 class ProviderPactVerificationTest {
 
@@ -152,11 +153,39 @@ class ProviderPactVerificationTest {
         });
     }
 
-    // ==================== US-005: Critical Risk (disabled) ====================
+    // ==================== US-005: Critical Risk ====================
 
     @State("an entity with critical risk level exists")
     void setupEntityWithCriticalRisk() {
-        // US-005: Not implemented yet
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+
+            // Create multiple embargos to achieve critical risk score (>=80)
+            // Each embargo: 10 (base) + 5 (deforestation) + 3 (Amazônia) + 10 (area) = 28 points
+            // 4 embargos = 112 points, capped at 100
+            for (int i = 0; i < 4; i++) {
+                Embargo embargo = new Embargo();
+                embargo.setSeqTad(8L + i);
+                embargo.setNumTad("45678" + i);
+                embargo.setSerTad("A");
+                embargo.setNomePessoaEmbargada("Mineradora Vermelha S.A.");
+                embargo.setCpfCnpjEmbargado("44555666000181");
+                embargo.setTpAreaEmbargada("Ambiental IBAMA");
+                embargo.setDatEmbargo(java.time.LocalDateTime.of(2024, 6, 1, 0, 0));
+                embargo.setDesTad("Embargo total de atividades por contaminação");
+                embargo.setSigUfTad("PA");
+                embargo.setNomMunicipioTad("Altamira");
+                embargo.setSitDesmatamento("D");                                      // +5 points
+                embargo.setCodTipoBioma(4);                                           // Amazônia +3 points
+                embargo.setDesTipoBioma("Amazônia");
+                embargo.setQtdAreaEmbargada(java.math.BigDecimal.valueOf(150));       // +10 points (max)
+                embargo.setNumAutoInfracao("456780");
+                embargo.setSerAutoInfracao("A");
+
+                repository.persist(embargo);
+            }
+        });
     }
 
 }
