@@ -242,8 +242,8 @@ class IbamaDataLoaderIntegrationTest {
 - [x] Implementar processamento em batch com commit intermediário
 - [x] Adicionar configurações no `application.properties`
 - [x] Verificar que testes de contrato continuam passando (6 testes OK)
-- [ ] Criar testes de unidade para parser (futuro)
-- [ ] Criar teste de integração para carga (futuro)
+- [x] Criar testes de unidade para parser (20 testes - TDD)
+- [x] Criar teste de integração para carga (2 testes)
 - [ ] Documentar configurações no README (futuro)
 
 ---

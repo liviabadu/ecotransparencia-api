@@ -1,11 +1,16 @@
 package br.com.ecotransparencia.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+@Schema(description = "Resposta da busca de entidades")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SearchResponse {
 
+    @Schema(description = "Indica se a entidade foi encontrada", example = "true")
     private boolean found;
+
+    @Schema(description = "Dados da entidade encontrada (null se found=false)")
     private EntityDto entity;
 
     public SearchResponse() {

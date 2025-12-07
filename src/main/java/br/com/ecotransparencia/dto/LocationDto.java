@@ -1,9 +1,17 @@
 package br.com.ecotransparencia.dto;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
+@Schema(description = "Localizacao geografica do embargo")
 public class LocationDto {
 
+    @Schema(description = "Sigla da Unidade Federativa", example = "RJ")
     private String uf;
+
+    @Schema(description = "Nome do municipio", example = "Teresopolis")
     private String municipio;
+
+    @Schema(description = "Nome do imovel embargado", example = "Prefeitura Municipal de Teresopolis")
     private String imovel;
 
     public LocationDto() {

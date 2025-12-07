@@ -42,6 +42,11 @@ public class IbamaDataLoader {
     @Inject
     EmbargoRepository repository;
 
+    // Getter para testes
+    public boolean isLoadOnStartup() {
+        return loadOnStartup;
+    }
+
     void onStart(@Observes StartupEvent event) {
         if (!loadOnStartup) {
             Log.info("IBAMA data loading disabled (app.data.load-on-startup=false)");
@@ -63,6 +68,7 @@ public class IbamaDataLoader {
 
         int totalRecords = 0;
         int inserted = 0;
+        int skipped = 0;
         int errors = 0;
         List<Embargo> batch = new ArrayList<>(BATCH_SIZE);
 
@@ -77,12 +83,19 @@ public class IbamaDataLoader {
                 totalRecords++;
                 try {
                     Embargo embargo = parseEmbargo(line);
+                    if (embargo == null) {
+                        skipped++;
+                        if (skipped <= 10) {
+                            Log.warnf("Skipping line %d: missing SEQ_TAD (primary key)", totalRecords);
+                        }
+                        continue;
+                    }
                     batch.add(embargo);
 
                     if (batch.size() >= BATCH_SIZE) {
                         inserted += persistBatch(batch);
-                        int batchNum = (totalRecords / BATCH_SIZE);
-                        Log.infof("Processing batch %d (%d records)", batchNum, totalRecords);
+                        int batchNum = (inserted / BATCH_SIZE);
+                        Log.infof("Processing batch %d (%d records inserted)", batchNum, inserted);
                         batch.clear();
                     }
                 } catch (Exception e) {
@@ -107,6 +120,7 @@ public class IbamaDataLoader {
         Log.info("IBAMA data load completed:");
         Log.infof("  - Total records: %d", totalRecords);
         Log.infof("  - Inserted: %d", inserted);
+        Log.infof("  - Skipped (no SEQ_TAD): %d", skipped);
         Log.infof("  - Errors: %d", errors);
         Log.infof("  - Time: %.1f seconds", elapsed / 1000.0);
     }
@@ -121,10 +135,16 @@ public class IbamaDataLoader {
     }
 
     Embargo parseEmbargo(String[] fields) {
+        // SEQ_TAD é obrigatório (chave primária)
+        Long seqTad = parseLong(fields[0]);
+        if (seqTad == null) {
+            return null;
+        }
+
         Embargo embargo = new Embargo();
 
         // Campos de identificação
-        embargo.setSeqTad(parseLong(fields[0]));
+        embargo.setSeqTad(seqTad);
         embargo.setNumTad(parseString(fields[1]));
         embargo.setSerTad(parseString(fields[2]));
 

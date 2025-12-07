@@ -1,22 +1,46 @@
 package br.com.ecotransparencia.dto;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
 import java.math.BigDecimal;
 
+@Schema(description = "Dados de uma ocorrencia de embargo ambiental")
 public class OccurrenceDto {
 
+    @Schema(description = "Identificador unico do termo de embargo", example = "1872430")
     private String id;
+
+    @Schema(description = "Categoria/tipo de area embargada", example = "Atividade")
     private String category;
+
+    @Schema(description = "Data do embargo em formato ISO 8601", example = "1990-03-27T00:00:00.000Z")
     private String date;
+
+    @Schema(description = "Descricao/justificativa do embargo", example = "Exercer atividades potencialmente degradadoras do meio ambiente.")
     private String description;
+
+    @Schema(description = "Fonte dos dados", example = "IBAMA")
     private String source;
+
+    @Schema(description = "URL para consulta na fonte oficial", example = "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php")
     private String sourceUrl;
+
+    @Schema(description = "Status do embargo: Ativo ou Baixado", example = "Ativo")
     private String status;
 
-    // US-006: Campos adicionais
+    @Schema(description = "Numero do auto de infracao vinculado", example = "598101-A")
     private String autoInfracao;
+
+    @Schema(description = "Indica se o embargo e relacionado a desmatamento", example = "true")
     private Boolean desmatamento;
+
+    @Schema(description = "Area embargada em hectares", example = "10.0")
     private BigDecimal areaEmbargada;
+
+    @Schema(description = "Bioma afetado", example = "Amazonia")
     private String biome;
+
+    @Schema(description = "Localizacao geografica do embargo")
     private LocationDto location;
 
     public OccurrenceDto() {
