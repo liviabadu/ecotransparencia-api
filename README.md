@@ -53,6 +53,24 @@ You can then execute your native executable with: `./target/ecotransparencia-api
 
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 
+## Running with Docker
+
+Build the Docker image:
+
+```shell script
+docker build -t ecotransparencia-api .
+```
+
+Run the container:
+
+```shell script
+docker run -i --rm -p 8080:8080 ecotransparencia-api
+```
+
+The application will be available at <http://localhost:8080>.
+
+> **_NOTE:_** The Dockerfile uses a multi-stage build that compiles the application inside Docker, so you don't need Java or Maven installed locally.
+
 ## Related Guides
 
 - REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and

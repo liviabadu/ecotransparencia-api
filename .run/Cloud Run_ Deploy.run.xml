@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Cloud Run: Run Locally" type="CloudCodeCloudRunConfigurationType" factoryName="CloudCodeCloudRunDevelopConfigurationFactory" show_console_on_std_err="false" show_console_on_std_out="false" imageBuilder="{&quot;name&quot;:&quot;Docker&quot;,&quot;payload&quot;:{&quot;path&quot;:&quot;src/main/docker/Dockerfile.jvm&quot;}}">
+  <configuration default="false" name="Cloud Run: Deploy" type="CloudCodeCloudRunConfigurationType" factoryName="Cloud Run">
     <option name="allowRunningInParallel" value="false" />
     <option name="buildpacksEnv">
       <map />
@@ -15,6 +15,7 @@
     <option name="environmentVariables">
       <map />
     </option>
+    <option name="imageBuilder" value="Docker" />
     <option name="loadingAvailableBuilders" value="false" />
     <option name="mappings">
       <list />
