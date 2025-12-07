@@ -1,0 +1,40 @@
+steps:
+  # Step 1: Install Git LFS and pull large files
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y git-lfs
+        git lfs install
+        git lfs pull
+
+  # Step 2: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ecotransparencia-api:$COMMIT_SHA', '.']
+
+  # Step 3: Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/ecotransparencia-api:$COMMIT_SHA']
+
+  # Step 4: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ecotransparencia-api'
+      - '--image=gcr.io/$PROJECT_ID/ecotransparencia-api:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=10'
+
+images:
+  - 'gcr.io/$PROJECT_ID/ecotransparencia-api:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -35,6 +35,9 @@ COPY --from=build --chown=185 /app/target/quarkus-app/*.jar /deployments/
 COPY --from=build --chown=185 /app/target/quarkus-app/app/ /deployments/app/
 COPY --from=build --chown=185 /app/target/quarkus-app/quarkus/ /deployments/quarkus/
 
+# Copy IBAMA CSV data file
+COPY --chown=185 docs/ibama/areas_embargadas.csv /deployments/data/areas_embargadas.csv
+
 EXPOSE 8080
 USER 185
 
