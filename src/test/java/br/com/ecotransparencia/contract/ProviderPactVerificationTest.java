@@ -6,21 +6,40 @@ import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvide
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.VerificationReports;
+import au.com.dius.pact.provider.junitsupport.loader.PactFilter;
 import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
+import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.repository.EmbargoRepository;
+import io.quarkus.arc.Arc;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+/**
+ * Provider contract verification test.
+ *
+ * Currently testing:
+ * - US-001 (Search by CNPJ)
+ * - US-002 (Search by CPF)
+ *
+ * Filter pattern matches interaction descriptions.
+ * To enable more interactions, update the @PactFilter regex.
+ */
 @QuarkusTest
 @Provider("EcoTransparenciaBackend")
 @PactFolder("src/test/resources/pacts")
+@PactFilter(".*(CNPJ|CPF).*")  // US-001 & US-002: CNPJ and CPF search enabled
 @VerificationReports({"console"})
 class ProviderPactVerificationTest {
 
+    private EmbargoRepository getRepository() {
+        return Arc.container().instance(EmbargoRepository.class).get();
+    }
+
     @BeforeEach
     void before(PactVerificationContext context) {
-        // Quarkus test HTTP server usually runs on 8081
         context.setTarget(new HttpTestTarget("localhost", 8081));
     }
 
@@ -30,33 +49,88 @@ class ProviderPactVerificationTest {
         context.verifyInteraction();
     }
 
+    // ==================== US-001: Search by CNPJ ====================
+
     @State("an entity with CNPJ 11222333000181 exists")
     void setupEntityWithCnpj() {
-        // TODO: Setup test data for entity with CNPJ 11222333000181
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+
+            Embargo embargo = new Embargo();
+            embargo.setSeqTad(1L);
+            embargo.setNumTad("12345");
+            embargo.setSerTad("A");
+            embargo.setNomePessoaEmbargada("Empresa Verde Sustentável Ltda");
+            embargo.setCpfCnpjEmbargado("11222333000181");
+            embargo.setTpAreaEmbargada("Ambiental IBAMA");
+            embargo.setDatEmbargo(java.time.LocalDateTime.of(2023, 6, 15, 0, 0));
+            embargo.setDesTad("Advertência por descarte irregular de resíduos");
+            embargo.setSigUfTad("SP");
+            embargo.setNomMunicipioTad("São Paulo");
+            embargo.setSitDesmatamento("N");
+            embargo.setQtdAreaEmbargada(java.math.BigDecimal.valueOf(5.5));
+            embargo.setNumAutoInfracao("123456");
+            embargo.setSerAutoInfracao("A");
+
+            repository.persist(embargo);
+        });
     }
+
+    // ==================== US-002: Search by CPF ====================
 
     @State("a person with CPF 12345678909 exists")
     void setupPersonWithCpf() {
-        // TODO: Setup test data for person with CPF 12345678909
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+
+            Embargo embargo = new Embargo();
+            embargo.setSeqTad(5L);
+            embargo.setNumTad("890123");
+            embargo.setSerTad("A");
+            embargo.setNomePessoaEmbargada("João da Silva Teste");
+            embargo.setCpfCnpjEmbargado("12345678909");
+            embargo.setTpAreaEmbargada("Ambiental IBAMA");
+            embargo.setDatEmbargo(java.time.LocalDateTime.of(2024, 2, 15, 0, 0));
+            embargo.setDesTad("Auto de infração por pesca ilegal em área protegida");
+            embargo.setSigUfTad("AM");
+            embargo.setNomMunicipioTad("Manaus");
+            embargo.setSitDesmatamento("N");
+            embargo.setQtdAreaEmbargada(java.math.BigDecimal.valueOf(0));
+            embargo.setNumAutoInfracao("890123");
+            embargo.setSerAutoInfracao("A");
+            embargo.setDesTipoBioma("Amazônia");
+            embargo.setCodTipoBioma(4);
+
+            repository.persist(embargo);
+        });
     }
 
-    @State("an entity with critical risk level exists")
-    void setupEntityWithCriticalRisk() {
-        // TODO: Setup test data for entity with critical risk level
-    }
+    // ==================== US-003: Search by Name (disabled) ====================
 
     @State("an entity with name containing \"Empresa Verde\" exists")
     void setupEntityWithName() {
-        // TODO: Setup test data for entity with name containing "Empresa Verde"
+        // US-003: Not implemented yet
     }
+
+    // ==================== US-004: Not Found scenarios (disabled) ====================
 
     @State("no entity with CNPJ 00000000000000 exists")
     void setupNoEntityWithCnpj() {
-        // No setup needed - entity should not exist
+        // US-004: Will be enabled with US-001
     }
 
     @State("no entity with name \"Entidade Inexistente XYZ\" exists")
     void setupNoEntityWithName() {
-        // No setup needed - entity should not exist
+        // US-004: Not implemented yet
     }
+
+    // ==================== US-005: Critical Risk (disabled) ====================
+
+    @State("an entity with critical risk level exists")
+    void setupEntityWithCriticalRisk() {
+        // US-005: Not implemented yet
+    }
+
 }
