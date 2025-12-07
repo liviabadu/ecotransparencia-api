@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * - US-001 (Search by CNPJ)
  * - US-002 (Search by CPF)
  * - US-003 (Search by Name)
+ * - US-004 (Entity Not Found)
  * - US-005 (Critical Risk Level)
  *
  * Filter pattern matches interaction descriptions.
@@ -137,11 +138,15 @@ class ProviderPactVerificationTest {
         });
     }
 
-    // ==================== US-004: Not Found scenarios (disabled) ====================
+    // ==================== US-004: Not Found scenarios ====================
 
     @State("no entity with CNPJ 00000000000000 exists")
     void setupNoEntityWithCnpj() {
-        // US-004: Will be enabled with US-001
+        QuarkusTransaction.requiringNew().run(() -> {
+            EmbargoRepository repository = getRepository();
+            repository.deleteAll();
+            // No data inserted - entity should not be found
+        });
     }
 
     @State("no entity with name \"Entidade Inexistente XYZ\" exists")
