@@ -1,17 +1,7 @@
 steps:
-  # Step 1: Install Git LFS and fetch large files
-  - name: 'gcr.io/cloud-builders/git'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        apt-get update && apt-get install -y git-lfs
-        git lfs install --skip-smudge
-        git lfs fetch --all
-        git lfs checkout
-        echo "=== Checking CSV file ==="
-        head -3 docs/ibama/areas_embargadas.csv
-        wc -l docs/ibama/areas_embargadas.csv
+  # Step 1: Download CSV from GCS bucket
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['cp', 'gs://ecotransparencia/areas_embargadas.csv', 'docs/ibama/areas_embargadas.csv']
 
   # Step 2: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
