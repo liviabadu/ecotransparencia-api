@@ -4,7 +4,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 import java.util.List;
 
-@Schema(description = "Dados da entidade (pessoa fisica ou juridica) com embargos")
+@Schema(description = "Dados da entidade (pessoa fisica ou juridica) com ocorrencias ambientais")
 public class EntityDto {
 
     @Schema(description = "Identificador unico da entidade", example = "1872430")
@@ -19,13 +19,19 @@ public class EntityDto {
     @Schema(description = "Tipo do documento: 'cpf' ou 'cnpj'", example = "cnpj")
     private String documentType;
 
-    @Schema(description = "Nivel de risco: Baixo, Medio, Alto ou Critico", example = "Baixo")
+    @Schema(description = "Score ASG calculado a partir de multiplas fontes")
+    private AsgScoreDto asgScore;
+
+    @Schema(description = "Nivel de risco: Baixo, Medio, Alto ou Critico (derivado do ASG)", example = "Baixo")
     private String riskLevel;
 
-    @Schema(description = "Score numerico de risco (0-100)", example = "15")
+    @Schema(description = "Score numerico de risco (0-100) (derivado do ASG)", example = "15")
     private int score;
 
-    @Schema(description = "Lista de embargos associados a entidade")
+    @Schema(description = "Ocorrencias agrupadas por fonte de dados")
+    private OcorrenciasAgrupadasDto ocorrencias;
+
+    @Schema(description = "Lista de embargos associados a entidade (retrocompatibilidade)", deprecated = true)
     private List<OccurrenceDto> occurrences;
 
     public EntityDto() {
@@ -85,5 +91,21 @@ public class EntityDto {
 
     public void setOccurrences(List<OccurrenceDto> occurrences) {
         this.occurrences = occurrences;
+    }
+
+    public AsgScoreDto getAsgScore() {
+        return asgScore;
+    }
+
+    public void setAsgScore(AsgScoreDto asgScore) {
+        this.asgScore = asgScore;
+    }
+
+    public OcorrenciasAgrupadasDto getOcorrencias() {
+        return ocorrencias;
+    }
+
+    public void setOcorrencias(OcorrenciasAgrupadasDto ocorrencias) {
+        this.ocorrencias = ocorrencias;
     }
 }

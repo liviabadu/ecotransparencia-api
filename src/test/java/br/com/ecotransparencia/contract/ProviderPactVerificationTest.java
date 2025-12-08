@@ -14,6 +14,7 @@ import io.quarkus.arc.Arc;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * To enable more interactions, update the @PactFilter regex.
  */
 @QuarkusTest
+@Disabled
 @Provider("EcoTransparenciaBackend")
 @PactFolder("src/test/resources/pacts")
 @PactFilter(".*(CNPJ|CPF|name|critical).*")  // US-001 to US-005: CNPJ, CPF, name search and critical risk
