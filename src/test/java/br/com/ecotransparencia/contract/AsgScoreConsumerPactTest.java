@@ -2,6 +2,7 @@ package br.com.ecotransparencia.contract;
 
 import au.com.dius.pact.consumer.MockServer;
 import au.com.dius.pact.consumer.dsl.LambdaDsl;
+import au.com.dius.pact.consumer.dsl.LambdaDslObject;
 import au.com.dius.pact.consumer.dsl.PactBuilder;
 import au.com.dius.pact.consumer.junit5.PactConsumerTestExt;
 import au.com.dius.pact.consumer.junit5.PactTestFor;
@@ -12,6 +13,8 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -32,13 +35,77 @@ class AsgScoreConsumerPactTest {
 
     private static final String CONSUMER_NAME = "EcoTransparenciaFrontendV2";
 
+    // ==================== Builders reutilizaveis ====================
+
+    /**
+     * Constroi um embargo completo com todos os campos do OccurrenceDto.
+     */
+    private Consumer<LambdaDslObject> buildFullEmbargo() {
+        return emb -> {
+            emb.stringType("id", "emb-123");
+            emb.stringType("category", "Ambiental IBAMA");
+            emb.stringType("date", "2024-01-15T00:00:00.000Z");
+            emb.stringType("description", "Embargo por desmatamento ilegal em area de preservacao");
+            emb.stringType("source", "IBAMA");
+            emb.stringType("sourceUrl", "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php");
+            emb.stringType("status", "Baixado");
+            emb.stringType("autoInfracao", "123456-A");
+            emb.booleanType("desmatamento", true);
+            emb.decimalType("areaEmbargada", 150.5);
+            emb.stringType("biome", "Amazonia");
+            emb.object("location", loc -> {
+                loc.stringType("uf", "PA");
+                loc.stringType("municipio", "Altamira");
+                loc.stringType("imovel", "Fazenda Santa Clara");
+            });
+        };
+    }
+
+    /**
+     * Constroi um auto de infracao completo com todos os campos do AutoInfracaoDto.
+     */
+    private Consumer<LambdaDslObject> buildFullAutoInfracao() {
+        return auto -> {
+            auto.stringType("id", "auto-456");
+            auto.stringType("numeroAuto", "ABCD1234");
+            auto.stringType("data", "2024-02-20T10:30:00.000Z");
+            auto.stringType("descricao", "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente");
+            auto.stringType("tipoInfracao", "Flora");
+            auto.decimalType("valorMulta", 75000.00);
+            auto.stringType("status", "Lavrado");
+            auto.stringType("gravidade", "Grave");
+            auto.stringType("motivacaoConduta", "Intencional");
+            auto.stringType("efeitoMeioAmbiente", "Grave");
+            auto.stringType("biomasAtingidos", "Amazonia");
+            auto.stringType("enquadramentoLegal", "Art. 47 - Decreto 6514/2008");
+            auto.stringType("source", "IBAMA");
+            auto.object("location", loc -> {
+                loc.stringType("uf", "AM");
+                loc.stringType("municipio", "Manaus");
+            });
+        };
+    }
+
+    /**
+     * Constroi o breakdown do ASG Score com todos os campos do ScoreComponentDto.
+     */
+    private Consumer<LambdaDslObject> buildFullBreakdown(String fonte, int score, double peso, int qtd) {
+        return breakdown -> {
+            breakdown.stringType("fonte", fonte);
+            breakdown.integerType("score", score);
+            breakdown.decimalType("peso", peso);
+            breakdown.decimalType("scorePonderado", score * peso);
+            breakdown.integerType("quantidadeOcorrencias", qtd);
+        };
+    }
+
     // ==================== US-ASG-001: Busca por CNPJ com ASG Score ====================
 
     @Pact(consumer = CONSUMER_NAME)
     V4Pact searchByCnpjWithAsgScore(PactBuilder builder) {
         return builder
                 .given("an entity with CNPJ 11222333000181 has embargos and autos de infracao")
-                .expectsToReceiveHttpInteraction("a request to search by CNPJ expecting ASG score", httpBuilder ->
+                .expectsToReceiveHttpInteraction("a request to search by CNPJ expecting ASG score with all fields", httpBuilder ->
                         httpBuilder
                                 .withRequest(request -> request
                                         .method("GET")
@@ -58,48 +125,23 @@ class AsgScoreConsumerPactTest {
                                                 entity.integerType("score", 45);
                                                 entity.stringType("riskLevel", "Medio");
 
-                                                // ASG Score
+                                                // ASG Score completo
                                                 entity.object("asgScore", asg -> {
                                                     asg.integerType("score", 45);
                                                     asg.stringType("riskLevel", "Medio");
                                                     asg.integerType("totalOcorrencias", 3);
-                                                    asg.minArrayLike("breakdown", 1, breakdown -> {
-                                                        breakdown.stringType("fonte", "Embargos IBAMA");
-                                                        breakdown.integerType("score", 30);
-                                                        breakdown.decimalType("peso", 0.5);
-                                                        breakdown.decimalType("scorePonderado", 15.0);
-                                                        breakdown.integerType("quantidadeOcorrencias", 2);
-                                                    });
+                                                    asg.minArrayLike("breakdown", 1,
+                                                            buildFullBreakdown("Embargos IBAMA", 30, 0.5, 2));
                                                 });
 
-                                                // Ocorrencias agrupadas
+                                                // Ocorrencias agrupadas com todos os campos
                                                 entity.object("ocorrencias", ocorrencias -> {
-                                                    ocorrencias.minArrayLike("embargos", 1, emb -> {
-                                                        emb.stringType("id", "emb-123");
-                                                        emb.stringType("category", "Ambiental IBAMA");
-                                                        emb.stringType("date", "2024-01-15T00:00:00.000Z");
-                                                        emb.stringType("description", "Embargo por desmatamento ilegal");
-                                                        emb.stringType("source", "IBAMA");
-                                                        emb.stringType("status", "Baixado");
-                                                    });
-                                                    ocorrencias.minArrayLike("autosInfracao", 1, auto -> {
-                                                        auto.stringType("id", "auto-456");
-                                                        auto.stringType("numeroAuto", "ABCD1234");
-                                                        auto.stringType("data", "2024-02-20T10:30:00.000Z");
-                                                        auto.stringType("descricao", "Auto de infracao");
-                                                        auto.stringType("tipoInfracao", "Fauna");
-                                                        auto.decimalType("valorMulta", 25000.00);
-                                                        auto.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("embargos", 1, buildFullEmbargo());
+                                                    ocorrencias.minArrayLike("autosInfracao", 1, buildFullAutoInfracao());
                                                 });
 
-                                                // Retrocompatibilidade
-                                                entity.minArrayLike("occurrences", 1, occ -> {
-                                                    occ.stringType("id", "emb-123");
-                                                    occ.stringType("category", "Ambiental IBAMA");
-                                                    occ.stringType("source", "IBAMA");
-                                                    occ.stringType("status", "Baixado");
-                                                });
+                                                // Retrocompatibilidade com todos os campos
+                                                entity.minArrayLike("occurrences", 1, buildFullEmbargo());
                                             });
                                         }).build())))
                 .toPact();
@@ -118,11 +160,33 @@ class AsgScoreConsumerPactTest {
         assertThat(response.statusCode(), is(200));
         assertThat(response.jsonPath().getBoolean("found"), is(true));
         assertThat(response.jsonPath().getString("entity.document"), is("11222333000181"));
+
+        // Valida ASG Score
         assertThat(response.jsonPath().getInt("entity.asgScore.score"), greaterThanOrEqualTo(0));
         assertThat(response.jsonPath().getString("entity.asgScore.riskLevel"), notNullValue());
         assertThat(response.jsonPath().getList("entity.asgScore.breakdown"), not(empty()));
+        assertThat(response.jsonPath().getDouble("entity.asgScore.breakdown[0].scorePonderado"), notNullValue());
+
+        // Valida embargos completos
         assertThat(response.jsonPath().getList("entity.ocorrencias.embargos"), not(empty()));
+        assertThat(response.jsonPath().getString("entity.ocorrencias.embargos[0].sourceUrl"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.embargos[0].autoInfracao"), notNullValue());
+        assertThat(response.jsonPath().getBoolean("entity.ocorrencias.embargos[0].desmatamento"), notNullValue());
+        assertThat(response.jsonPath().getDouble("entity.ocorrencias.embargos[0].areaEmbargada"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.embargos[0].biome"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.embargos[0].location.imovel"), notNullValue());
+
+        // Valida autos completos
         assertThat(response.jsonPath().getList("entity.ocorrencias.autosInfracao"), not(empty()));
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].status"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].gravidade"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].motivacaoConduta"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].efeitoMeioAmbiente"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].biomasAtingidos"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].enquadramentoLegal"), notNullValue());
+        assertThat(response.jsonPath().getString("entity.ocorrencias.autosInfracao[0].location.uf"), notNullValue());
+
+        // Valida retrocompatibilidade
         assertThat(response.jsonPath().getList("entity.occurrences"), not(empty()));
     }
 
@@ -132,7 +196,7 @@ class AsgScoreConsumerPactTest {
     V4Pact searchByCpfWithAsgScore(PactBuilder builder) {
         return builder
                 .given("a person with CPF 12345678909 has embargos and autos de infracao")
-                .expectsToReceiveHttpInteraction("a request to search by CPF expecting ASG score", httpBuilder ->
+                .expectsToReceiveHttpInteraction("a request to search by CPF expecting ASG score with all fields", httpBuilder ->
                         httpBuilder
                                 .withRequest(request -> request
                                         .method("GET")
@@ -156,30 +220,16 @@ class AsgScoreConsumerPactTest {
                                                     asg.integerType("score", 28);
                                                     asg.stringType("riskLevel", "Medio");
                                                     asg.integerType("totalOcorrencias", 2);
-                                                    asg.minArrayLike("breakdown", 1, breakdown -> {
-                                                        breakdown.stringType("fonte", "Embargos IBAMA");
-                                                        breakdown.integerType("score", 20);
-                                                        breakdown.decimalType("peso", 0.5);
-                                                        breakdown.decimalType("scorePonderado", 10.0);
-                                                        breakdown.integerType("quantidadeOcorrencias", 1);
-                                                    });
+                                                    asg.minArrayLike("breakdown", 1,
+                                                            buildFullBreakdown("Embargos IBAMA", 20, 0.5, 1));
                                                 });
 
                                                 entity.object("ocorrencias", ocorrencias -> {
-                                                    ocorrencias.minArrayLike("embargos", 1, emb -> {
-                                                        emb.stringType("id", "emb-5");
-                                                        emb.stringType("source", "IBAMA");
-                                                    });
-                                                    ocorrencias.minArrayLike("autosInfracao", 1, auto -> {
-                                                        auto.stringType("id", "auto-5");
-                                                        auto.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("embargos", 1, buildFullEmbargo());
+                                                    ocorrencias.minArrayLike("autosInfracao", 1, buildFullAutoInfracao());
                                                 });
 
-                                                entity.minArrayLike("occurrences", 1, occ -> {
-                                                    occ.stringType("id", "emb-5");
-                                                    occ.stringType("source", "IBAMA");
-                                                });
+                                                entity.minArrayLike("occurrences", 1, buildFullEmbargo());
                                             });
                                         }).build())))
                 .toPact();
@@ -207,7 +257,7 @@ class AsgScoreConsumerPactTest {
     V4Pact searchByNameWithAsgScore(PactBuilder builder) {
         return builder
                 .given("an entity with name containing \"Empresa Verde\" has multiple occurrences")
-                .expectsToReceiveHttpInteraction("a request to search by name expecting ASG score", httpBuilder ->
+                .expectsToReceiveHttpInteraction("a request to search by name expecting ASG score with all fields", httpBuilder ->
                         httpBuilder
                                 .withRequest(request -> request
                                         .method("GET")
@@ -230,30 +280,16 @@ class AsgScoreConsumerPactTest {
                                                     asg.integerType("score", 45);
                                                     asg.stringType("riskLevel", "Medio");
                                                     asg.integerType("totalOcorrencias", 3);
-                                                    asg.minArrayLike("breakdown", 1, breakdown -> {
-                                                        breakdown.stringType("fonte", "Embargos IBAMA");
-                                                        breakdown.integerType("score", 30);
-                                                        breakdown.decimalType("peso", 0.5);
-                                                        breakdown.decimalType("scorePonderado", 15.0);
-                                                        breakdown.integerType("quantidadeOcorrencias", 2);
-                                                    });
+                                                    asg.minArrayLike("breakdown", 1,
+                                                            buildFullBreakdown("Embargos IBAMA", 30, 0.5, 2));
                                                 });
 
                                                 entity.object("ocorrencias", ocorrencias -> {
-                                                    ocorrencias.minArrayLike("embargos", 1, emb -> {
-                                                        emb.stringType("id", "emb-1");
-                                                        emb.stringType("source", "IBAMA");
-                                                    });
-                                                    ocorrencias.minArrayLike("autosInfracao", 1, auto -> {
-                                                        auto.stringType("id", "auto-1");
-                                                        auto.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("embargos", 1, buildFullEmbargo());
+                                                    ocorrencias.minArrayLike("autosInfracao", 1, buildFullAutoInfracao());
                                                 });
 
-                                                entity.minArrayLike("occurrences", 1, occ -> {
-                                                    occ.stringType("id", "emb-1");
-                                                    occ.stringType("source", "IBAMA");
-                                                });
+                                                entity.minArrayLike("occurrences", 1, buildFullEmbargo());
                                             });
                                         }).build())))
                 .toPact();
@@ -337,36 +373,24 @@ class AsgScoreConsumerPactTest {
                                                 entity.integerType("score", 92);
                                                 entity.stringValue("riskLevel", "Critico");
 
+                                                // ASG Score critico com breakdown de multiplas fontes
                                                 entity.object("asgScore", asg -> {
                                                     asg.integerType("score", 92);
                                                     asg.stringValue("riskLevel", "Critico");
                                                     asg.integerType("totalOcorrencias", 8);
-                                                    asg.minArrayLike("breakdown", 2, breakdown -> {
-                                                        breakdown.stringType("fonte", "Embargos IBAMA");
-                                                        breakdown.integerType("score", 100);
-                                                        breakdown.decimalType("peso", 0.5);
-                                                        breakdown.decimalType("scorePonderado", 50.0);
-                                                        breakdown.integerType("quantidadeOcorrencias", 4);
+                                                    // Breakdown com 2 fontes
+                                                    asg.array("breakdown", arr -> {
+                                                        arr.object(buildFullBreakdown("Embargos IBAMA", 100, 0.5, 4));
+                                                        arr.object(buildFullBreakdown("Autos de Infracao IBAMA", 80, 0.35, 4));
                                                     });
                                                 });
 
                                                 entity.object("ocorrencias", ocorrencias -> {
-                                                    ocorrencias.minArrayLike("embargos", 1, emb -> {
-                                                        emb.stringType("id", "emb-critical");
-                                                        emb.stringType("category", "Ambiental IBAMA");
-                                                        emb.stringType("source", "IBAMA");
-                                                    });
-                                                    ocorrencias.minArrayLike("autosInfracao", 1, auto -> {
-                                                        auto.stringType("id", "auto-critical");
-                                                        auto.stringType("tipoInfracao", "Flora");
-                                                        auto.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("embargos", 1, buildFullEmbargo());
+                                                    ocorrencias.minArrayLike("autosInfracao", 1, buildFullAutoInfracao());
                                                 });
 
-                                                entity.minArrayLike("occurrences", 1, occ -> {
-                                                    occ.stringType("id", "emb-critical");
-                                                    occ.stringType("source", "IBAMA");
-                                                });
+                                                entity.minArrayLike("occurrences", 1, buildFullEmbargo());
                                             });
                                         }).build())))
                 .toPact();
@@ -387,7 +411,7 @@ class AsgScoreConsumerPactTest {
         assertThat(response.jsonPath().getString("entity.riskLevel"), is("Critico"));
         assertThat(response.jsonPath().getInt("entity.asgScore.score"), greaterThanOrEqualTo(80));
         assertThat(response.jsonPath().getString("entity.asgScore.riskLevel"), is("Critico"));
-        assertThat(response.jsonPath().getList("entity.asgScore.breakdown").size(), greaterThanOrEqualTo(2));
+        assertThat(response.jsonPath().getList("entity.asgScore.breakdown").size(), is(2));
     }
 
     // ==================== US-ASG-006: Apenas embargos (sem autos) ====================
@@ -420,25 +444,16 @@ class AsgScoreConsumerPactTest {
                                                     asg.integerType("score", 15);
                                                     asg.stringValue("riskLevel", "Baixo");
                                                     asg.integerType("totalOcorrencias", 1);
-                                                    asg.minArrayLike("breakdown", 1, 1, breakdown -> {
-                                                        breakdown.stringType("fonte", "Embargos IBAMA");
-                                                        breakdown.integerType("score", 15);
-                                                        breakdown.decimalType("peso", 0.5);
-                                                        breakdown.integerType("quantidadeOcorrencias", 1);
-                                                    });
+                                                    asg.minArrayLike("breakdown", 1, 1,
+                                                            buildFullBreakdown("Embargos IBAMA", 15, 0.5, 1));
                                                 });
 
                                                 entity.object("ocorrencias", ocorrencias -> {
-                                                    ocorrencias.minArrayLike("embargos", 1, emb -> {
-                                                        emb.stringType("id", "emb-only");
-                                                        emb.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("embargos", 1, buildFullEmbargo());
                                                     ocorrencias.array("autosInfracao", arr -> {});
                                                 });
 
-                                                entity.minArrayLike("occurrences", 1, occ -> {
-                                                    occ.stringType("id", "emb-only");
-                                                });
+                                                entity.minArrayLike("occurrences", 1, buildFullEmbargo());
                                             });
                                         }).build())))
                 .toPact();
@@ -457,6 +472,7 @@ class AsgScoreConsumerPactTest {
         assertThat(response.statusCode(), is(200));
         assertThat(response.jsonPath().getBoolean("found"), is(true));
         assertThat(response.jsonPath().getList("entity.ocorrencias.embargos"), not(empty()));
+        assertThat(response.jsonPath().getList("entity.ocorrencias.autosInfracao"), empty());
         assertThat(response.jsonPath().getList("entity.asgScore.breakdown").size(), is(1));
     }
 
@@ -490,23 +506,16 @@ class AsgScoreConsumerPactTest {
                                                     asg.integerType("score", 20);
                                                     asg.stringValue("riskLevel", "Baixo");
                                                     asg.integerType("totalOcorrencias", 2);
-                                                    asg.minArrayLike("breakdown", 1, 1, breakdown -> {
-                                                        breakdown.stringType("fonte", "Autos de Infracao IBAMA");
-                                                        breakdown.integerType("score", 20);
-                                                        breakdown.decimalType("peso", 0.35);
-                                                        breakdown.integerType("quantidadeOcorrencias", 2);
-                                                    });
+                                                    asg.minArrayLike("breakdown", 1, 1,
+                                                            buildFullBreakdown("Autos de Infracao IBAMA", 20, 0.35, 2));
                                                 });
 
                                                 entity.object("ocorrencias", ocorrencias -> {
                                                     ocorrencias.array("embargos", arr -> {});
-                                                    ocorrencias.minArrayLike("autosInfracao", 1, auto -> {
-                                                        auto.stringType("id", "auto-only");
-                                                        auto.stringType("tipoInfracao", "Fauna");
-                                                        auto.stringType("source", "IBAMA");
-                                                    });
+                                                    ocorrencias.minArrayLike("autosInfracao", 1, buildFullAutoInfracao());
                                                 });
 
+                                                // Sem embargos, occurrences fica vazio
                                                 entity.array("occurrences", arr -> {});
                                             });
                                         }).build())))
@@ -525,6 +534,7 @@ class AsgScoreConsumerPactTest {
 
         assertThat(response.statusCode(), is(200));
         assertThat(response.jsonPath().getBoolean("found"), is(true));
+        assertThat(response.jsonPath().getList("entity.ocorrencias.embargos"), empty());
         assertThat(response.jsonPath().getList("entity.ocorrencias.autosInfracao"), not(empty()));
         assertThat(response.jsonPath().getList("entity.asgScore.breakdown").size(), is(1));
     }

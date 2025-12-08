@@ -1,0 +1,4313 @@
+{
+  "consumer": {
+    "name": "EcoTransparenciaFrontendV2"
+  },
+  "interactions": [
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByCpfWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by CPF expecting ASG score",
+      "key": "a0ac4d39",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a person with CPF 12345678909 has embargos and autos de infracao"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "12345678909"
+          ],
+          "type": [
+            "cpf"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 1,
+                    "score": 20,
+                    "scorePonderado": 10.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 28,
+                "totalOcorrencias": 2
+              },
+              "document": "12345678909",
+              "documentType": "cpf",
+              "id": "5",
+              "name": "Joao da Silva Teste",
+              "occurrences": [
+                {
+                  "id": "emb-5",
+                  "source": "IBAMA"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "id": "auto-5",
+                    "source": "IBAMA"
+                  }
+                ],
+                "embargos": [
+                  {
+                    "id": "emb-5",
+                    "source": "IBAMA"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 28
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByCpfWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by CPF expecting ASG score with all fields",
+      "key": "4b7eec7f",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a person with CPF 12345678909 has embargos and autos de infracao"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "12345678909"
+          ],
+          "type": [
+            "cpf"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 1,
+                    "score": 20,
+                    "scorePonderado": 10.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 28,
+                "totalOcorrencias": 2
+              },
+              "document": "12345678909",
+              "documentType": "cpf",
+              "id": "5",
+              "name": "Joao da Silva Teste",
+              "occurrences": [
+                {
+                  "areaEmbargada": 150.5,
+                  "autoInfracao": "123456-A",
+                  "biome": "Amazonia",
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-01-15T00:00:00.000Z",
+                  "description": "Embargo por desmatamento ilegal em area de preservacao",
+                  "desmatamento": true,
+                  "id": "emb-123",
+                  "location": {
+                    "imovel": "Fazenda Santa Clara",
+                    "municipio": "Altamira",
+                    "uf": "PA"
+                  },
+                  "source": "IBAMA",
+                  "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "biomasAtingidos": "Amazonia",
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente",
+                    "efeitoMeioAmbiente": "Grave",
+                    "enquadramentoLegal": "Art. 47 - Decreto 6514/2008",
+                    "gravidade": "Grave",
+                    "id": "auto-456",
+                    "location": {
+                      "municipio": "Manaus",
+                      "uf": "AM"
+                    },
+                    "motivacaoConduta": "Intencional",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "status": "Lavrado",
+                    "tipoInfracao": "Flora",
+                    "valorMulta": 75000.0
+                  }
+                ],
+                "embargos": [
+                  {
+                    "areaEmbargada": 150.5,
+                    "autoInfracao": "123456-A",
+                    "biome": "Amazonia",
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal em area de preservacao",
+                    "desmatamento": true,
+                    "id": "emb-123",
+                    "location": {
+                      "imovel": "Fazenda Santa Clara",
+                      "municipio": "Altamira",
+                      "uf": "PA"
+                    },
+                    "source": "IBAMA",
+                    "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 28
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].biomasAtingidos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].efeitoMeioAmbiente": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].enquadramentoLegal": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].gravidade": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].motivacaoConduta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByCnpjWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by CNPJ expecting ASG score",
+      "key": "38f204de",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with CNPJ 11222333000181 has embargos and autos de infracao"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "11222333000181"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 2,
+                    "score": 30,
+                    "scorePonderado": 15.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 45,
+                "totalOcorrencias": 3
+              },
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentavel Ltda",
+              "occurrences": [
+                {
+                  "category": "Ambiental IBAMA",
+                  "id": "emb-123",
+                  "source": "IBAMA",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao",
+                    "id": "auto-456",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "tipoInfracao": "Fauna",
+                    "valorMulta": 25000.0
+                  }
+                ],
+                "embargos": [
+                  {
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal",
+                    "id": "emb-123",
+                    "source": "IBAMA",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 45
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByCnpjWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by CNPJ expecting ASG score with all fields",
+      "key": "9b86d424",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with CNPJ 11222333000181 has embargos and autos de infracao"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "11222333000181"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 2,
+                    "score": 30,
+                    "scorePonderado": 15.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 45,
+                "totalOcorrencias": 3
+              },
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentavel Ltda",
+              "occurrences": [
+                {
+                  "areaEmbargada": 150.5,
+                  "autoInfracao": "123456-A",
+                  "biome": "Amazonia",
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-01-15T00:00:00.000Z",
+                  "description": "Embargo por desmatamento ilegal em area de preservacao",
+                  "desmatamento": true,
+                  "id": "emb-123",
+                  "location": {
+                    "imovel": "Fazenda Santa Clara",
+                    "municipio": "Altamira",
+                    "uf": "PA"
+                  },
+                  "source": "IBAMA",
+                  "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "biomasAtingidos": "Amazonia",
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente",
+                    "efeitoMeioAmbiente": "Grave",
+                    "enquadramentoLegal": "Art. 47 - Decreto 6514/2008",
+                    "gravidade": "Grave",
+                    "id": "auto-456",
+                    "location": {
+                      "municipio": "Manaus",
+                      "uf": "AM"
+                    },
+                    "motivacaoConduta": "Intencional",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "status": "Lavrado",
+                    "tipoInfracao": "Flora",
+                    "valorMulta": 75000.0
+                  }
+                ],
+                "embargos": [
+                  {
+                    "areaEmbargada": 150.5,
+                    "autoInfracao": "123456-A",
+                    "biome": "Amazonia",
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal em area de preservacao",
+                    "desmatamento": true,
+                    "id": "emb-123",
+                    "location": {
+                      "imovel": "Fazenda Santa Clara",
+                      "municipio": "Altamira",
+                      "uf": "PA"
+                    },
+                    "source": "IBAMA",
+                    "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 45
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].biomasAtingidos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].efeitoMeioAmbiente": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].enquadramentoLegal": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].gravidade": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].motivacaoConduta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchCriticalRiskWithAsgScore(MockServer)"
+      },
+      "description": "a request to search entity with critical ASG risk",
+      "key": "bc276a3",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with critical risk has many embargos and autos de infracao"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "44555666000181"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 4,
+                    "score": 100,
+                    "scorePonderado": 50.0
+                  },
+                  {
+                    "fonte": "Autos de Infracao IBAMA",
+                    "peso": 0.35,
+                    "quantidadeOcorrencias": 4,
+                    "score": 80,
+                    "scorePonderado": 28.0
+                  }
+                ],
+                "riskLevel": "Critico",
+                "score": 92,
+                "totalOcorrencias": 8
+              },
+              "document": "44555666000181",
+              "documentType": "cnpj",
+              "id": "8",
+              "name": "Mineradora Vermelha S.A.",
+              "occurrences": [
+                {
+                  "areaEmbargada": 150.5,
+                  "autoInfracao": "123456-A",
+                  "biome": "Amazonia",
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-01-15T00:00:00.000Z",
+                  "description": "Embargo por desmatamento ilegal em area de preservacao",
+                  "desmatamento": true,
+                  "id": "emb-123",
+                  "location": {
+                    "imovel": "Fazenda Santa Clara",
+                    "municipio": "Altamira",
+                    "uf": "PA"
+                  },
+                  "source": "IBAMA",
+                  "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "biomasAtingidos": "Amazonia",
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente",
+                    "efeitoMeioAmbiente": "Grave",
+                    "enquadramentoLegal": "Art. 47 - Decreto 6514/2008",
+                    "gravidade": "Grave",
+                    "id": "auto-456",
+                    "location": {
+                      "municipio": "Manaus",
+                      "uf": "AM"
+                    },
+                    "motivacaoConduta": "Intencional",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "status": "Lavrado",
+                    "tipoInfracao": "Flora",
+                    "valorMulta": 75000.0
+                  }
+                ],
+                "embargos": [
+                  {
+                    "areaEmbargada": 150.5,
+                    "autoInfracao": "123456-A",
+                    "biome": "Amazonia",
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal em area de preservacao",
+                    "desmatamento": true,
+                    "id": "emb-123",
+                    "location": {
+                      "imovel": "Fazenda Santa Clara",
+                      "municipio": "Altamira",
+                      "uf": "PA"
+                    },
+                    "source": "IBAMA",
+                    "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Critico",
+              "score": 92
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown[0].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[0].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[0].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[0].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[0].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[1].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[1].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[1].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[1].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[1].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].biomasAtingidos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].efeitoMeioAmbiente": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].enquadramentoLegal": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].gravidade": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].motivacaoConduta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByNameWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by name expecting ASG score",
+      "key": "7a3e986d",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with name containing \"Empresa Verde\" has multiple occurrences"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/name",
+        "query": {
+          "name": [
+            "Empresa Verde"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 2,
+                    "score": 30,
+                    "scorePonderado": 15.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 45,
+                "totalOcorrencias": 3
+              },
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentavel Ltda",
+              "occurrences": [
+                {
+                  "id": "emb-1",
+                  "source": "IBAMA"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "id": "auto-1",
+                    "source": "IBAMA"
+                  }
+                ],
+                "embargos": [
+                  {
+                    "id": "emb-1",
+                    "source": "IBAMA"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 45
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByNameWithAsgScore(MockServer)"
+      },
+      "description": "a request to search by name expecting ASG score with all fields",
+      "key": "911d63b3",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with name containing \"Empresa Verde\" has multiple occurrences"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/name",
+        "query": {
+          "name": [
+            "Empresa Verde"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 2,
+                    "score": 30,
+                    "scorePonderado": 15.0
+                  }
+                ],
+                "riskLevel": "Medio",
+                "score": 45,
+                "totalOcorrencias": 3
+              },
+              "document": "11222333000181",
+              "documentType": "cnpj",
+              "id": "1",
+              "name": "Empresa Verde Sustentavel Ltda",
+              "occurrences": [
+                {
+                  "areaEmbargada": 150.5,
+                  "autoInfracao": "123456-A",
+                  "biome": "Amazonia",
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-01-15T00:00:00.000Z",
+                  "description": "Embargo por desmatamento ilegal em area de preservacao",
+                  "desmatamento": true,
+                  "id": "emb-123",
+                  "location": {
+                    "imovel": "Fazenda Santa Clara",
+                    "municipio": "Altamira",
+                    "uf": "PA"
+                  },
+                  "source": "IBAMA",
+                  "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "biomasAtingidos": "Amazonia",
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente",
+                    "efeitoMeioAmbiente": "Grave",
+                    "enquadramentoLegal": "Art. 47 - Decreto 6514/2008",
+                    "gravidade": "Grave",
+                    "id": "auto-456",
+                    "location": {
+                      "municipio": "Manaus",
+                      "uf": "AM"
+                    },
+                    "motivacaoConduta": "Intencional",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "status": "Lavrado",
+                    "tipoInfracao": "Flora",
+                    "valorMulta": 75000.0
+                  }
+                ],
+                "embargos": [
+                  {
+                    "areaEmbargada": 150.5,
+                    "autoInfracao": "123456-A",
+                    "biome": "Amazonia",
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal em area de preservacao",
+                    "desmatamento": true,
+                    "id": "emb-123",
+                    "location": {
+                      "imovel": "Fazenda Santa Clara",
+                      "municipio": "Altamira",
+                      "uf": "PA"
+                    },
+                    "source": "IBAMA",
+                    "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Medio",
+              "score": 45
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].biomasAtingidos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].efeitoMeioAmbiente": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].enquadramentoLegal": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].gravidade": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].motivacaoConduta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.riskLevel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchWithOnlyAutosInfracao(MockServer)"
+      },
+      "description": "a request to search entity with only autos de infracao",
+      "key": "db09d544",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with only autos de infracao exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "98765432100"
+          ],
+          "type": [
+            "cpf"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Autos de Infracao IBAMA",
+                    "peso": 0.35,
+                    "quantidadeOcorrencias": 2,
+                    "score": 20,
+                    "scorePonderado": 7.0
+                  }
+                ],
+                "riskLevel": "Baixo",
+                "score": 20,
+                "totalOcorrencias": 2
+              },
+              "document": "98765432100",
+              "documentType": "cpf",
+              "id": "20",
+              "name": "Pescador Irregular",
+              "occurrences": [
+
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+                  {
+                    "biomasAtingidos": "Amazonia",
+                    "data": "2024-02-20T10:30:00.000Z",
+                    "descricao": "Auto de infracao por extracao ilegal de madeira em area de preservacao permanente",
+                    "efeitoMeioAmbiente": "Grave",
+                    "enquadramentoLegal": "Art. 47 - Decreto 6514/2008",
+                    "gravidade": "Grave",
+                    "id": "auto-456",
+                    "location": {
+                      "municipio": "Manaus",
+                      "uf": "AM"
+                    },
+                    "motivacaoConduta": "Intencional",
+                    "numeroAuto": "ABCD1234",
+                    "source": "IBAMA",
+                    "status": "Lavrado",
+                    "tipoInfracao": "Flora",
+                    "valorMulta": 75000.0
+                  }
+                ],
+                "embargos": [
+
+                ]
+              },
+              "riskLevel": "Baixo",
+              "score": 20
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].biomasAtingidos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].data": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].descricao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].efeitoMeioAmbiente": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].enquadramentoLegal": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].gravidade": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].motivacaoConduta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].numeroAuto": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].tipoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.autosInfracao[*].valorMulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchWithOnlyEmbargos(MockServer)"
+      },
+      "description": "a request to search entity with only embargos",
+      "key": "7a754514",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "an entity with only embargos exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "55666777000199"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "entity": {
+              "asgScore": {
+                "breakdown": [
+                  {
+                    "fonte": "Embargos IBAMA",
+                    "peso": 0.5,
+                    "quantidadeOcorrencias": 1,
+                    "score": 15,
+                    "scorePonderado": 7.5
+                  }
+                ],
+                "riskLevel": "Baixo",
+                "score": 15,
+                "totalOcorrencias": 1
+              },
+              "document": "55666777000199",
+              "documentType": "cnpj",
+              "id": "10",
+              "name": "Fazenda Antiga Ltda",
+              "occurrences": [
+                {
+                  "areaEmbargada": 150.5,
+                  "autoInfracao": "123456-A",
+                  "biome": "Amazonia",
+                  "category": "Ambiental IBAMA",
+                  "date": "2024-01-15T00:00:00.000Z",
+                  "description": "Embargo por desmatamento ilegal em area de preservacao",
+                  "desmatamento": true,
+                  "id": "emb-123",
+                  "location": {
+                    "imovel": "Fazenda Santa Clara",
+                    "municipio": "Altamira",
+                    "uf": "PA"
+                  },
+                  "source": "IBAMA",
+                  "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                  "status": "Baixado"
+                }
+              ],
+              "ocorrencias": {
+                "autosInfracao": [
+
+                ],
+                "embargos": [
+                  {
+                    "areaEmbargada": 150.5,
+                    "autoInfracao": "123456-A",
+                    "biome": "Amazonia",
+                    "category": "Ambiental IBAMA",
+                    "date": "2024-01-15T00:00:00.000Z",
+                    "description": "Embargo por desmatamento ilegal em area de preservacao",
+                    "desmatamento": true,
+                    "id": "emb-123",
+                    "location": {
+                      "imovel": "Fazenda Santa Clara",
+                      "municipio": "Altamira",
+                      "uf": "PA"
+                    },
+                    "source": "IBAMA",
+                    "sourceUrl": "https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php",
+                    "status": "Baixado"
+                  }
+                ]
+              },
+              "riskLevel": "Baixo",
+              "score": 15
+            },
+            "found": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.entity.asgScore.breakdown": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].fonte": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].peso": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].quantidadeOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.breakdown[*].scorePonderado": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.asgScore.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.asgScore.totalOcorrencias": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.entity.document": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.documentType": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.name": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.occurrences[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.occurrences[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].areaEmbargada": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].autoInfracao": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].biome": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].category": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].description": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].desmatamento": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.imovel": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.municipio": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].location.uf": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].source": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].sourceUrl": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.ocorrencias.embargos[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.entity.score": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchNotFoundWithAsg(MockServer)"
+      },
+      "description": "a request to search non-existent CNPJ with ASG",
+      "key": "2ac1502",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no entity with CNPJ 00000000000000 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "00000000000000"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "found": false
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.7.0-beta.1"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    },
+    "plugins": [
+
+    ]
+  },
+  "provider": {
+    "name": "EcoTransparenciaBackend"
+  }
+}
