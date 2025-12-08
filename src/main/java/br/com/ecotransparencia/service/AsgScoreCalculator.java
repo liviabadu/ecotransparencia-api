@@ -25,34 +25,32 @@ public class AsgScoreCalculator {
 
     /**
      * Calcula o Score ASG agregando todas as fontes de dados.
+     * IMPORTANTE: O score considera Autos E Embargos juntos (não OU).
+     * Ambas as fontes sempre são incluídas no breakdown.
      */
     public AsgScoreDto calculate(List<Embargo> embargos, List<AutoInfracao> autosInfracao) {
         List<ScoreComponentDto> breakdown = new ArrayList<>();
 
-        // Calcula score de embargos
+        // Calcula score de embargos (SEMPRE inclui no breakdown)
         int embargoScore = calculateEmbargoScore(embargos);
-        if (!embargos.isEmpty() || embargoScore > 0) {
-            breakdown.add(new ScoreComponentDto(
-                FonteDados.EMBARGO.getDescricao(),
-                embargoScore,
-                FonteDados.EMBARGO.getPeso(),
-                embargos.size()
-            ));
-        }
+        breakdown.add(new ScoreComponentDto(
+            FonteDados.EMBARGO.getDescricao(),
+            embargoScore,
+            FonteDados.EMBARGO.getPeso(),
+            embargos.size()
+        ));
 
-        // Calcula score de autos de infracao
+        // Calcula score de autos de infracao (SEMPRE inclui no breakdown)
         int autoScore = calculateAutoInfracaoScore(autosInfracao);
-        if (!autosInfracao.isEmpty() || autoScore > 0) {
-            breakdown.add(new ScoreComponentDto(
-                FonteDados.AUTO_INFRACAO.getDescricao(),
-                autoScore,
-                FonteDados.AUTO_INFRACAO.getPeso(),
-                autosInfracao.size()
-            ));
-        }
+        breakdown.add(new ScoreComponentDto(
+            FonteDados.AUTO_INFRACAO.getDescricao(),
+            autoScore,
+            FonteDados.AUTO_INFRACAO.getPeso(),
+            autosInfracao.size()
+        ));
 
-        // Calcula score final ponderado
-        int finalScore = calculateWeightedScore(breakdown);
+        // Calcula score final ponderado considerando AMBAS as fontes
+        int finalScore = calculateWeightedScoreAll(breakdown);
         int totalOcorrencias = embargos.size() + autosInfracao.size();
 
         AsgScoreDto asgScore = new AsgScoreDto();
@@ -64,42 +62,57 @@ public class AsgScoreCalculator {
         return asgScore;
     }
 
+    // Fator de redução para embargos baixados (10% do valor normal)
+    private static final double FATOR_EMBARGO_BAIXADO = 0.10;
+
     /**
      * Calcula o score baseado em embargos.
      *
-     * Criterios:
+     * Criterios para embargos ATIVOS:
      * - +15 pontos por embargo
      * - +10 pontos se relacionado a desmatamento
      * - +5 pontos se em bioma sensivel (Amazonia, Mata Atlantica)
      * - +1 ponto a cada 10 hectares embargados (max +10)
+     *
+     * Criterios para embargos BAIXADOS:
+     * - Aplica-se apenas 10% dos pontos (peso muito baixo, mas ainda considerados)
      */
     int calculateEmbargoScore(List<Embargo> embargos) {
-        int score = 0;
+        double score = 0;
 
         for (Embargo embargo : embargos) {
+            double embargoPoints = 0;
+
             // Base por embargo
-            score += 15;
+            embargoPoints += 15;
 
             // Desmatamento
             if ("D".equals(embargo.getSitDesmatamento())) {
-                score += 10;
+                embargoPoints += 10;
             }
 
             // Bioma sensivel
             if (embargo.getCodTipoBioma() != null && embargo.getCodTipoBioma() == 4) {
-                score += 5; // Amazonia
+                embargoPoints += 5; // Amazonia
             } else if (isBiomaSensivel(embargo.getDesTipoBioma())) {
-                score += 5;
+                embargoPoints += 5;
             }
 
             // Area embargada
             if (embargo.getQtdAreaEmbargada() != null) {
                 int areaPoints = Math.min(embargo.getQtdAreaEmbargada().intValue() / 10, 10);
-                score += areaPoints;
+                embargoPoints += areaPoints;
             }
+
+            // Se embargo baixado, aplica fator de redução (peso muito baixo)
+            if (embargo.isBaixado()) {
+                embargoPoints *= FATOR_EMBARGO_BAIXADO;
+            }
+
+            score += embargoPoints;
         }
 
-        return Math.min(score, 100);
+        return Math.min((int) Math.round(score), 100);
     }
 
     /**
@@ -181,9 +194,39 @@ public class AsgScoreCalculator {
     }
 
     /**
-     * Calcula o score final ponderado.
-     * Formula: sum(score * peso) / sum(peso) para fontes com ocorrencias
+     * Calcula o score final ponderado considerando TODAS as fontes (Autos E Embargos).
+     * Formula: sum(score * peso) / sum(peso) para TODAS as fontes
+     *
+     * Diferente do método anterior, este considera AMBAS as fontes sempre,
+     * mesmo que uma delas não tenha ocorrências.
      */
+    private int calculateWeightedScoreAll(List<ScoreComponentDto> breakdown) {
+        if (breakdown.isEmpty()) {
+            return 0;
+        }
+
+        double totalPonderado = 0;
+        double totalPeso = 0;
+
+        // Considera TODAS as fontes, não apenas as com ocorrências
+        for (ScoreComponentDto component : breakdown) {
+            totalPonderado += component.getScorePonderado();
+            totalPeso += component.getPeso();
+        }
+
+        if (totalPeso == 0) {
+            return 0;
+        }
+
+        // Normaliza pelo peso total de TODAS as fontes
+        double normalized = totalPonderado / totalPeso;
+        return Math.min((int) Math.round(normalized), 100);
+    }
+
+    /**
+     * @deprecated Use calculateWeightedScoreAll para considerar Autos E Embargos
+     */
+    @Deprecated
     private int calculateWeightedScore(List<ScoreComponentDto> breakdown) {
         if (breakdown.isEmpty()) {
             return 0;

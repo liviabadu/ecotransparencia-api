@@ -90,6 +90,9 @@ public class Embargo {
     @Column(name = "des_tipo_bioma")
     private String desTipoBioma;
 
+    @Column(name = "ind_baixado")
+    private String indBaixado;
+
     // Getters and Setters
 
     public Long getSeqTad() {
@@ -298,5 +301,21 @@ public class Embargo {
 
     public void setDesTipoBioma(String desTipoBioma) {
         this.desTipoBioma = desTipoBioma;
+    }
+
+    public String getIndBaixado() {
+        return indBaixado;
+    }
+
+    public void setIndBaixado(String indBaixado) {
+        this.indBaixado = indBaixado;
+    }
+
+    /**
+     * Verifica se o embargo foi baixado.
+     * @return true se indBaixado é "S", false caso contrário
+     */
+    public boolean isBaixado() {
+        return "S".equalsIgnoreCase(indBaixado);
     }
 }

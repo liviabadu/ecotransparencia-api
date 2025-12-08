@@ -32,6 +32,9 @@ public class SearchService {
     @Inject
     AsgScoreCalculator asgScoreCalculator;
 
+    @Inject
+    ReceitaFederalService receitaFederalService;
+
     public SearchResponse searchByDocument(String document, String type) {
         // Busca em todas as fontes
         List<Embargo> embargos = embargoRepository.findByDocument(document);
@@ -100,6 +103,11 @@ public class SearchService {
 
         entity.setDocument(document);
         entity.setDocumentType(type);
+
+        // Consulta situacao cadastral na Receita Federal
+        if (document != null) {
+            entity.setSituacaoCadastral(receitaFederalService.consultar(document));
+        }
 
         // Calcula Score ASG
         AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao);
@@ -213,7 +221,7 @@ public class SearchService {
     }
 
     private String determineEmbargoStatus(Embargo embargo) {
-        return "Baixado";
+        return embargo.isBaixado() ? "Baixado" : "Ativo";
     }
 
     // Metodos legados para retrocompatibilidade

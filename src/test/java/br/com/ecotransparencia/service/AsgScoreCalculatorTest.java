@@ -100,6 +100,56 @@ class AsgScoreCalculatorTest {
             int score = calculator.calculateEmbargoScore(embargos);
             assertEquals(100, score);
         }
+
+        @Test
+        @DisplayName("Deve aplicar peso muito baixo (10%) para embargos baixados")
+        void shouldApplyLowWeightForBaixadoEmbargos() {
+            Embargo embargoAtivo = createBasicEmbargo();
+            embargoAtivo.setSeqTad(1L);
+            // Embargo ativo: 15 pontos
+
+            Embargo embargoBaixado = createBasicEmbargo();
+            embargoBaixado.setSeqTad(2L);
+            embargoBaixado.setIndBaixado("S"); // Embargo baixado
+            // Embargo baixado: 15 * 0.10 = 1.5 ~ 2 pontos
+
+            int scoreAtivo = calculator.calculateEmbargoScore(List.of(embargoAtivo));
+            int scoreBaixado = calculator.calculateEmbargoScore(List.of(embargoBaixado));
+
+            assertEquals(15, scoreAtivo);
+            assertEquals(2, scoreBaixado); // 15 * 0.10 = 1.5 arredondado
+        }
+
+        @Test
+        @DisplayName("Embargos baixados com desmatamento devem ter peso reduzido")
+        void shouldReduceScoreForBaixadoEmbargoWithDeforestation() {
+            Embargo embargoBaixado = createBasicEmbargo();
+            embargoBaixado.setSitDesmatamento("D");
+            embargoBaixado.setIndBaixado("S");
+            // Base: 15 + 10 (desmatamento) = 25
+            // Com reducao: 25 * 0.10 = 2.5 ~ 3
+
+            int score = calculator.calculateEmbargoScore(List.of(embargoBaixado));
+            assertEquals(3, score); // 25 * 0.10 = 2.5 arredondado
+        }
+
+        @Test
+        @DisplayName("Embargos com indBaixado N devem ter pontuacao normal")
+        void shouldUseNormalScoreForNonBaixadoEmbargo() {
+            Embargo embargo = createBasicEmbargo();
+            embargo.setIndBaixado("N"); // Nao baixado
+            int score = calculator.calculateEmbargoScore(List.of(embargo));
+            assertEquals(15, score);
+        }
+
+        @Test
+        @DisplayName("Embargos com indBaixado null devem ter pontuacao normal")
+        void shouldUseNormalScoreForNullBaixadoEmbargo() {
+            Embargo embargo = createBasicEmbargo();
+            embargo.setIndBaixado(null); // null = nao baixado
+            int score = calculator.calculateEmbargoScore(List.of(embargo));
+            assertEquals(15, score);
+        }
     }
 
     @Nested
@@ -183,22 +233,26 @@ class AsgScoreCalculatorTest {
         }
 
         @Test
-        @DisplayName("Deve calcular score ponderado com apenas embargos")
+        @DisplayName("Deve calcular score ponderado com apenas embargos (considera ambas fontes)")
         void shouldCalculateWeightedScoreWithOnlyEmbargos() {
             Embargo embargo = createBasicEmbargo();
             embargo.setSitDesmatamento("D"); // 25 pontos
 
             AsgScoreDto asg = calculator.calculate(List.of(embargo), Collections.emptyList());
 
-            // Score de embargoS = 25, peso = 0.5
-            // Como so tem embargos, normaliza: 25 * 0.5 / 0.5 = 25
-            assertEquals(25, asg.getScore());
+            // Score de embargos = 25, peso = 0.5
+            // Score de autos = 0, peso = 0.35
+            // NOVA LOGICA: Considera AMBAS as fontes (Autos E Embargos)
+            // Ponderado = (25*0.5 + 0*0.35) / (0.5 + 0.35) = 12.5 / 0.85 = 14.7 ~ 15
+            assertEquals(15, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(1, asg.getTotalOcorrencias());
+            // Verifica que AMBAS as fontes estao no breakdown
+            assertEquals(2, asg.getBreakdown().size());
         }
 
         @Test
-        @DisplayName("Deve calcular score ponderado com apenas autos")
+        @DisplayName("Deve calcular score ponderado com apenas autos (considera ambas fontes)")
         void shouldCalculateWeightedScoreWithOnlyAutos() {
             AutoInfracao auto = createBasicAutoInfracao();
             auto.setMotivacaoConduta("Intencional");
@@ -206,11 +260,15 @@ class AsgScoreCalculatorTest {
 
             AsgScoreDto asg = calculator.calculate(Collections.emptyList(), List.of(auto));
 
+            // Score de embargos = 0, peso = 0.5
             // Score de autos = 18, peso = 0.35
-            // Como so tem autos, normaliza: 18 * 0.35 / 0.35 = 18
-            assertEquals(18, asg.getScore());
+            // NOVA LOGICA: Considera AMBAS as fontes (Autos E Embargos)
+            // Ponderado = (0*0.5 + 18*0.35) / (0.5 + 0.35) = 6.3 / 0.85 = 7.4 ~ 7
+            assertEquals(7, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(1, asg.getTotalOcorrencias());
+            // Verifica que AMBAS as fontes estao no breakdown
+            assertEquals(2, asg.getBreakdown().size());
         }
 
         @Test

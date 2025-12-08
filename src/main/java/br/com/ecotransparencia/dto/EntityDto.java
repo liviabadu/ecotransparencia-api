@@ -31,6 +31,9 @@ public class EntityDto {
     @Schema(description = "Ocorrencias agrupadas por fonte de dados")
     private OcorrenciasAgrupadasDto ocorrencias;
 
+    @Schema(description = "Situacao cadastral do documento na Receita Federal")
+    private SituacaoCadastralDto situacaoCadastral;
+
     @Schema(description = "Lista de embargos associados a entidade (retrocompatibilidade)", deprecated = true)
     private List<OccurrenceDto> occurrences;
 
@@ -107,5 +110,13 @@ public class EntityDto {
 
     public void setOcorrencias(OcorrenciasAgrupadasDto ocorrencias) {
         this.ocorrencias = ocorrencias;
+    }
+
+    public SituacaoCadastralDto getSituacaoCadastral() {
+        return situacaoCadastral;
+    }
+
+    public void setSituacaoCadastral(SituacaoCadastralDto situacaoCadastral) {
+        this.situacaoCadastral = situacaoCadastral;
     }
 }
