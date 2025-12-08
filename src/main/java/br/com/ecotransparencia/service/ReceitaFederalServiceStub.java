@@ -1,6 +1,7 @@
 package br.com.ecotransparencia.service;
 
 import br.com.ecotransparencia.dto.SituacaoCadastralDto;
+import br.com.ecotransparencia.util.DocumentoUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -9,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Implementacao stub do servico de consulta na Receita Federal.
- * Sempre retorna que o documento e valido.
+ * Valida o formato do documento (digitos verificadores) e retorna como valido.
  *
  * TODO: Substituir por implementacao real quando disponivel integracao com RF.
  */
@@ -23,6 +24,16 @@ public class ReceitaFederalServiceStub implements ReceitaFederalService {
     public SituacaoCadastralDto consultarCnpj(String cnpj) {
         LOG.debugf("Consultando CNPJ (stub): %s", mascararDocumento(cnpj));
 
+        // Valida formato do CNPJ (digitos verificadores)
+        if (!DocumentoUtil.validarCnpj(cnpj)) {
+            SituacaoCadastralDto resultado = SituacaoCadastralDto.invalido(
+                "INVALIDO",
+                "CNPJ com formato invalido (digitos verificadores incorretos)"
+            );
+            resultado.setDataConsulta(agora());
+            return resultado;
+        }
+
         SituacaoCadastralDto resultado = SituacaoCadastralDto.valido(
             "ATIVA",
             "Cadastro ativo na Receita Federal (stub)"
@@ -35,6 +46,16 @@ public class ReceitaFederalServiceStub implements ReceitaFederalService {
     @Override
     public SituacaoCadastralDto consultarCpf(String cpf) {
         LOG.debugf("Consultando CPF (stub): %s", mascararDocumento(cpf));
+
+        // Valida formato do CPF (digitos verificadores)
+        if (!DocumentoUtil.validarCpf(cpf)) {
+            SituacaoCadastralDto resultado = SituacaoCadastralDto.invalido(
+                "INVALIDO",
+                "CPF com formato invalido (digitos verificadores incorretos)"
+            );
+            resultado.setDataConsulta(agora());
+            return resultado;
+        }
 
         SituacaoCadastralDto resultado = SituacaoCadastralDto.valido(
             "REGULAR",
