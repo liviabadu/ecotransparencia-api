@@ -36,6 +36,16 @@ public class SearchService {
     ReceitaFederalService receitaFederalService;
 
     public SearchResponse searchByDocument(String document, String type) {
+        // US-007: Validar situacao cadastral do CNPJ antes de prosseguir
+        if ("cnpj".equalsIgnoreCase(type)) {
+            SituacaoCadastralDto situacao = receitaFederalService.consultarCnpj(document);
+
+            // Bloqueia se CNPJ nao esta ATIVO (ou se houve erro na consulta)
+            if (!isSituacaoPermitida(situacao)) {
+                return SearchResponse.bloqueadoPorSituacaoCadastral(situacao);
+            }
+        }
+
         // Busca em todas as fontes
         List<Embargo> embargos = embargoRepository.findByDocument(document);
         List<AutoInfracao> autosInfracao = autoInfracaoRepository.findByDocument(document);
@@ -46,6 +56,18 @@ public class SearchService {
 
         EntityDto entity = buildEntityDto(embargos, autosInfracao, document, type);
         return SearchResponse.found(entity);
+    }
+
+    /**
+     * Verifica se a situacao cadastral permite prosseguir com a analise (US-007).
+     * Apenas ATIVA e permitida para CNPJ.
+     */
+    private boolean isSituacaoPermitida(SituacaoCadastralDto situacao) {
+        if (situacao == null || !situacao.isValido()) {
+            return false;
+        }
+        // Apenas "ATIVA" permite prosseguir
+        return "ATIVA".equalsIgnoreCase(situacao.getSituacao());
     }
 
     public SearchResponse searchByName(String name) {
