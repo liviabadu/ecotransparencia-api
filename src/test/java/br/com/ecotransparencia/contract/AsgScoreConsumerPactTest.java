@@ -586,4 +586,56 @@ class AsgScoreConsumerPactTest {
         // entity deve ser null quando bloqueado
         assertThat(response.jsonPath().getObject("entity", Object.class), nullValue());
     }
+
+    // ==================== US-007: Erro na consulta a Receita Federal ====================
+
+    @Pact(consumer = CONSUMER_NAME)
+    V4Pact searchCnpjWithReceitaFederalError(PactBuilder builder) {
+        return builder
+                .given("CNPJA API returns rate limit error for CNPJ 99999999000191")
+                .expectsToReceiveHttpInteraction("a request when Receita Federal API is unavailable", httpBuilder ->
+                        httpBuilder
+                                .withRequest(request -> request
+                                        .method("GET")
+                                        .path("/api/search/document")
+                                        .queryParameter("document", "99999999000191")
+                                        .queryParameter("type", "cnpj"))
+                                .willRespondWith(response -> response
+                                        .status(200)
+                                        .header("Content-Type", "application/json")
+                                        .body(LambdaDsl.newJsonBody(body -> {
+                                            body.booleanValue("found", false);
+                                            body.booleanValue("bloqueadoPorSituacaoCadastral", true);
+                                            body.object("situacaoCadastral", situacao -> {
+                                                situacao.booleanValue("valido", false);
+                                                situacao.booleanValue("erroConsulta", true);
+                                                situacao.stringValue("situacao", "ERRO_CONSULTA");
+                                                situacao.integerType("codigoErro", 429);
+                                                situacao.stringType("dataConsulta", "2025-12-10T15:00:00.000Z");
+                                                situacao.stringType("mensagem", "Limite de consultas por minuto atingido. Aguarde alguns instantes e tente novamente.");
+                                            });
+                                        }).build())))
+                .toPact();
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "searchCnpjWithReceitaFederalError")
+    void testSearchCnpjWithReceitaFederalError(MockServer mockServer) {
+        Response response = RestAssured.given()
+                .baseUri(mockServer.getUrl())
+                .queryParam("document", "99999999000191")
+                .queryParam("type", "cnpj")
+                .when()
+                .get("/api/search/document");
+
+        assertThat(response.statusCode(), is(200));
+        assertThat(response.jsonPath().getBoolean("found"), is(false));
+        assertThat(response.jsonPath().getBoolean("bloqueadoPorSituacaoCadastral"), is(true));
+
+        // Verifica que foi erro de consulta, nao bloqueio por situacao
+        assertThat(response.jsonPath().getBoolean("situacaoCadastral.erroConsulta"), is(true));
+        assertThat(response.jsonPath().getString("situacaoCadastral.situacao"), is("ERRO_CONSULTA"));
+        assertThat(response.jsonPath().getInt("situacaoCadastral.codigoErro"), is(429));
+        assertThat(response.jsonPath().getString("situacaoCadastral.mensagem"), notNullValue());
+    }
 }

@@ -61,17 +61,67 @@ public class ReceitaFederalServiceImpl implements ReceitaFederalService {
             int status = e.getResponse().getStatus();
             LOG.errorf("Erro HTTP %d ao consultar CNPJ %s: %s", status, mascararDocumento(cnpj), e.getMessage());
 
-            if (status == 404) {
-                return criarResultado(false, "NAO_ENCONTRADO",
-                    "CNPJ nao encontrado na base da Receita Federal");
+            return tratarErroHttp(status, cnpj);
+
+        } catch (jakarta.ws.rs.ProcessingException e) {
+            // ProcessingException engloba timeout, conexao recusada, etc
+            String mensagemErro = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            LOG.errorf("Erro de processamento ao consultar CNPJ %s: %s", mascararDocumento(cnpj), mensagemErro);
+
+            if (mensagemErro != null && mensagemErro.toLowerCase().contains("timeout")) {
+                return criarErroConsulta(
+                    "Tempo limite excedido ao consultar a Receita Federal. Tente novamente mais tarde.",
+                    408
+                );
             }
 
-            return criarResultadoIndisponivel();
+            if (mensagemErro != null && (mensagemErro.toLowerCase().contains("connect") ||
+                                         mensagemErro.toLowerCase().contains("refused"))) {
+                return criarErroConsulta(
+                    "Nao foi possivel conectar ao servico da Receita Federal. Verifique sua conexao.",
+                    503
+                );
+            }
+
+            return criarErroConsulta(
+                "Erro de comunicacao com a Receita Federal. Tente novamente mais tarde.",
+                503
+            );
 
         } catch (Exception e) {
-            LOG.errorf(e, "Erro ao consultar CNPJ %s na CNPJA API", mascararDocumento(cnpj));
-            return criarResultadoIndisponivel();
+            LOG.errorf(e, "Erro inesperado ao consultar CNPJ %s na CNPJA API", mascararDocumento(cnpj));
+            return criarErroConsulta(
+                "Erro inesperado ao consultar a Receita Federal. Tente novamente mais tarde.",
+                null
+            );
         }
+    }
+
+    private SituacaoCadastralDto tratarErroHttp(int status, String cnpj) {
+        return switch (status) {
+            case 400 -> criarErroConsulta(
+                "CNPJ em formato invalido para consulta na Receita Federal.",
+                400
+            );
+            case 404 -> criarResultado(false, "NAO_ENCONTRADO",
+                "CNPJ nao encontrado na base da Receita Federal."
+            );
+            case 429 -> {
+                LOG.warnf("Rate limit atingido ao consultar CNPJ %s", mascararDocumento(cnpj));
+                yield criarErroConsulta(
+                    "Limite de consultas por minuto atingido. Aguarde alguns instantes e tente novamente.",
+                    429
+                );
+            }
+            case 500, 502, 503, 504 -> criarErroConsulta(
+                "Servico da Receita Federal temporariamente indisponivel. Tente novamente mais tarde.",
+                status
+            );
+            default -> criarErroConsulta(
+                "Erro ao consultar a Receita Federal (HTTP " + status + "). Tente novamente mais tarde.",
+                status
+            );
+        };
     }
 
     @Override
@@ -97,11 +147,8 @@ public class ReceitaFederalServiceImpl implements ReceitaFederalService {
         return resultado;
     }
 
-    private SituacaoCadastralDto criarResultadoIndisponivel() {
-        SituacaoCadastralDto resultado = SituacaoCadastralDto.invalido(
-            "INDISPONIVEL",
-            "Nao foi possivel validar o CNPJ na Receita Federal. Tente novamente mais tarde."
-        );
+    private SituacaoCadastralDto criarErroConsulta(String mensagem, Integer codigoErro) {
+        SituacaoCadastralDto resultado = SituacaoCadastralDto.erroConsulta(mensagem, codigoErro);
         resultado.setDataConsulta(agora());
         return resultado;
     }

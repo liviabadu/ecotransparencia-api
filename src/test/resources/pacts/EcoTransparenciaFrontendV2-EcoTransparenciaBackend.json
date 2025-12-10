@@ -90,6 +90,85 @@
     },
     {
       "comments": {
+        "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchCnpjWithReceitaFederalError(MockServer)"
+      },
+      "description": "a request when Receita Federal API is unavailable",
+      "key": "1944f91",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "CNPJA API returns rate limit error for CNPJ 99999999000191"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/api/search/document",
+        "query": {
+          "document": [
+            "99999999000191"
+          ],
+          "type": [
+            "cnpj"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "bloqueadoPorSituacaoCadastral": true,
+            "found": false,
+            "situacaoCadastral": {
+              "codigoErro": 429,
+              "dataConsulta": "2025-12-10T15:00:00.000Z",
+              "erroConsulta": true,
+              "mensagem": "Limite de consultas por minuto atingido. Aguarde alguns instantes e tente novamente.",
+              "situacao": "ERRO_CONSULTA",
+              "valido": false
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.situacaoCadastral.codigoErro": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.situacaoCadastral.dataConsulta": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.situacaoCadastral.mensagem": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "comments": {
         "testname": "br.com.ecotransparencia.contract.AsgScoreConsumerPactTest.testSearchByCpfWithAsgScore(MockServer)"
       },
       "description": "a request to search by CPF expecting ASG score with all fields",

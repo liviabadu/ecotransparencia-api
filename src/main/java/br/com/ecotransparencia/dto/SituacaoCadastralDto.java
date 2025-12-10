@@ -20,6 +20,12 @@ public class SituacaoCadastralDto {
     @Schema(description = "Mensagem descritiva da situacao", example = "Cadastro ativo na Receita Federal")
     private String mensagem;
 
+    @Schema(description = "Indica se houve erro na consulta a Receita Federal (rate limit, timeout, etc)", example = "false")
+    private boolean erroConsulta;
+
+    @Schema(description = "Codigo do erro HTTP retornado pela API (quando aplicavel)", example = "429")
+    private Integer codigoErro;
+
     public SituacaoCadastralDto() {
     }
 
@@ -27,6 +33,7 @@ public class SituacaoCadastralDto {
         this.valido = valido;
         this.situacao = situacao;
         this.mensagem = mensagem;
+        this.erroConsulta = false;
     }
 
     public boolean isValido() {
@@ -73,5 +80,32 @@ public class SituacaoCadastralDto {
      */
     public static SituacaoCadastralDto invalido(String situacao, String mensagem) {
         return new SituacaoCadastralDto(false, situacao, mensagem);
+    }
+
+    /**
+     * Cria uma resposta de erro na consulta a Receita Federal.
+     * Usado quando nao foi possivel validar o CNPJ (rate limit, timeout, erro de servidor, etc).
+     */
+    public static SituacaoCadastralDto erroConsulta(String mensagem, Integer codigoErro) {
+        SituacaoCadastralDto dto = new SituacaoCadastralDto(false, "ERRO_CONSULTA", mensagem);
+        dto.setErroConsulta(true);
+        dto.setCodigoErro(codigoErro);
+        return dto;
+    }
+
+    public boolean isErroConsulta() {
+        return erroConsulta;
+    }
+
+    public void setErroConsulta(boolean erroConsulta) {
+        this.erroConsulta = erroConsulta;
+    }
+
+    public Integer getCodigoErro() {
+        return codigoErro;
+    }
+
+    public void setCodigoErro(Integer codigoErro) {
+        this.codigoErro = codigoErro;
     }
 }
