@@ -2,6 +2,7 @@ package br.com.ecotransparencia.service;
 
 import br.com.ecotransparencia.dto.SituacaoCadastralDto;
 import br.com.ecotransparencia.util.DocumentoUtil;
+import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jboss.logging.Logger;
 
@@ -12,9 +13,11 @@ import java.time.format.DateTimeFormatter;
  * Implementacao stub do servico de consulta na Receita Federal.
  * Valida o formato do documento (digitos verificadores) e retorna como valido.
  *
- * TODO: Substituir por implementacao real quando disponivel integracao com RF.
+ * Usado como fallback quando a API real nao esta habilitada.
+ * Para habilitar a API real, configure: ecotransparencia.receita-federal.use-real-api=true
  */
 @ApplicationScoped
+@DefaultBean
 public class ReceitaFederalServiceStub implements ReceitaFederalService {
 
     private static final Logger LOG = Logger.getLogger(ReceitaFederalServiceStub.class);
