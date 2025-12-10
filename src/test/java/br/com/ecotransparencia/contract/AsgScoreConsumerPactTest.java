@@ -538,4 +538,52 @@ class AsgScoreConsumerPactTest {
         assertThat(response.jsonPath().getList("entity.ocorrencias.autosInfracao"), not(empty()));
         assertThat(response.jsonPath().getList("entity.asgScore.breakdown").size(), is(1));
     }
+
+    // ==================== US-007: CNPJ bloqueado por situacao cadastral ====================
+
+    @Pact(consumer = CONSUMER_NAME)
+    V4Pact searchCnpjBlockedBySituacaoCadastral(PactBuilder builder) {
+        return builder
+                .given("CNPJ 75776849000150 has situacao cadastral BAIXADA")
+                .expectsToReceiveHttpInteraction("a request to search CNPJ blocked by situacao cadastral", httpBuilder ->
+                        httpBuilder
+                                .withRequest(request -> request
+                                        .method("GET")
+                                        .path("/api/search/document")
+                                        .queryParameter("document", "75776849000150")
+                                        .queryParameter("type", "cnpj"))
+                                .willRespondWith(response -> response
+                                        .status(200)
+                                        .header("Content-Type", "application/json")
+                                        .body(LambdaDsl.newJsonBody(body -> {
+                                            body.booleanValue("found", false);
+                                            body.booleanValue("bloqueadoPorSituacaoCadastral", true);
+                                            body.object("situacaoCadastral", situacao -> {
+                                                situacao.booleanType("valido", true);
+                                                situacao.stringType("situacao", "Baixada");
+                                                situacao.stringType("dataConsulta", "2025-12-10T15:00:00.000Z");
+                                                situacao.stringType("mensagem", "CNPJ com situacao 'Baixada' na Receita Federal. Analise ASG nao disponivel para empresas inativas.");
+                                            });
+                                        }).build())))
+                .toPact();
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "searchCnpjBlockedBySituacaoCadastral")
+    void testSearchCnpjBlockedBySituacaoCadastral(MockServer mockServer) {
+        Response response = RestAssured.given()
+                .baseUri(mockServer.getUrl())
+                .queryParam("document", "75776849000150")
+                .queryParam("type", "cnpj")
+                .when()
+                .get("/api/search/document");
+
+        assertThat(response.statusCode(), is(200));
+        assertThat(response.jsonPath().getBoolean("found"), is(false));
+        assertThat(response.jsonPath().getBoolean("bloqueadoPorSituacaoCadastral"), is(true));
+        assertThat(response.jsonPath().getString("situacaoCadastral.situacao"), is("Baixada"));
+        assertThat(response.jsonPath().getString("situacaoCadastral.mensagem"), notNullValue());
+        // entity deve ser null quando bloqueado
+        assertThat(response.jsonPath().getObject("entity", Object.class), nullValue());
+    }
 }
