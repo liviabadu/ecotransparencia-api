@@ -4,9 +4,8 @@ import br.com.ecotransparencia.entity.AutoInfracao;
 import br.com.ecotransparencia.entity.DataLoadMarker;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
 import br.com.ecotransparencia.repository.DataLoadMarkerRepository;
-import com.opencsv.CSVParserBuilder;
+import br.com.ecotransparencia.util.CsvParserBuilder;
 import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,8 +15,6 @@ import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -127,11 +124,9 @@ public class IbamaAutoInfracaoDataLoader {
         int errors = 0;
         List<AutoInfracao> batch = new ArrayList<>(BATCH_SIZE);
 
-        try (Reader reader = new FileReader(csvFile, StandardCharsets.UTF_8);
-             CSVReader csvReader = new CSVReaderBuilder(reader)
-                     .withCSVParser(new CSVParserBuilder().withSeparator(';').build())
-                     .withSkipLines(1)
-                     .build()) {
+        try (CSVReader csvReader = CsvParserBuilder
+                .forCharset(StandardCharsets.UTF_8)
+                .open(csvFile.toPath())) {
 
             String[] line;
             int lineNum = 1;

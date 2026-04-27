@@ -4,9 +4,8 @@ import br.com.ecotransparencia.entity.DataLoadMarker;
 import br.com.ecotransparencia.entity.Embargo;
 import br.com.ecotransparencia.repository.DataLoadMarkerRepository;
 import br.com.ecotransparencia.repository.EmbargoRepository;
-import com.opencsv.CSVParserBuilder;
+import br.com.ecotransparencia.util.CsvParserBuilder;
 import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,10 +14,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.io.FileReader;
-import java.io.Reader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -103,11 +101,9 @@ public class IbamaDataLoader {
         int errors = 0;
         List<Embargo> batch = new ArrayList<>(BATCH_SIZE);
 
-        try (Reader reader = new FileReader(csvPath, StandardCharsets.UTF_8);
-             CSVReader csvReader = new CSVReaderBuilder(reader)
-                     .withCSVParser(new CSVParserBuilder().withSeparator(';').build())
-                     .withSkipLines(1) // Skip header
-                     .build()) {
+        try (CSVReader csvReader = CsvParserBuilder
+                .forCharset(StandardCharsets.UTF_8)
+                .open(Paths.get(csvPath))) {
 
             String[] line;
             while ((line = csvReader.readNext()) != null) {
