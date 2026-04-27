@@ -6,11 +6,15 @@ import br.com.ecotransparencia.dto.SituacaoCadastralDto;
 import br.com.ecotransparencia.entity.AutoInfracao;
 import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.IcmbioAutoInfracao;
+import br.com.ecotransparencia.entity.IcmbioEmbargo;
 import br.com.ecotransparencia.entity.SancaoAdmPublica;
 import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
 import br.com.ecotransparencia.repository.CepimRepository;
 import br.com.ecotransparencia.repository.EmbargoRepository;
+import br.com.ecotransparencia.repository.IcmbioAutoInfracaoRepository;
+import br.com.ecotransparencia.repository.IcmbioEmbargoRepository;
 import br.com.ecotransparencia.repository.SancaoAdmPublicaRepository;
 import br.com.ecotransparencia.repository.TrabalhoEscravoMteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +57,12 @@ class SearchServiceTest {
 
     @Mock
     private TrabalhoEscravoMteRepository trabalhoEscravoMteRepository;
+
+    @Mock
+    private IcmbioAutoInfracaoRepository icmbioAutoInfracaoRepository;
+
+    @Mock
+    private IcmbioEmbargoRepository icmbioEmbargoRepository;
 
     @Mock
     private AsgScoreCalculator asgScoreCalculator;

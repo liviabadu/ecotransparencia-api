@@ -20,7 +20,9 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Carrega dados do IBAMA a partir do arquivo CSV no startup da aplicação.
@@ -98,7 +100,12 @@ public class IbamaDataLoader {
         int totalRecords = 0;
         int inserted = 0;
         int skipped = 0;
+        int duplicates = 0;
         int errors = 0;
+        // Dedup por SEQ_TAD: o CSV do IBAMA pode conter linhas duplicadas
+        // (atualizacoes nao removidas do dump). Mantem a ultima ocorrencia
+        // (proxima ao final do arquivo, presumivelmente mais recente).
+        Set<Long> seen = new HashSet<>();
         List<Embargo> batch = new ArrayList<>(BATCH_SIZE);
 
         try (CSVReader csvReader = CsvParserBuilder
@@ -114,6 +121,13 @@ public class IbamaDataLoader {
                         skipped++;
                         if (skipped <= 10) {
                             Log.warnf("Skipping line %d: missing SEQ_TAD (primary key)", totalRecords);
+                        }
+                        continue;
+                    }
+                    if (!seen.add(embargo.getSeqTad())) {
+                        duplicates++;
+                        if (duplicates <= 5) {
+                            Log.warnf("Duplicate SEQ_TAD=%d on line %d, keeping previous", embargo.getSeqTad(), totalRecords);
                         }
                         continue;
                     }
@@ -148,6 +162,7 @@ public class IbamaDataLoader {
         Log.infof("  - Total records: %d", totalRecords);
         Log.infof("  - Inserted: %d", inserted);
         Log.infof("  - Skipped (no SEQ_TAD): %d", skipped);
+        Log.infof("  - Duplicates ignored: %d", duplicates);
         Log.infof("  - Errors: %d", errors);
         Log.infof("  - Time: %.1f seconds", elapsed / 1000.0);
     }

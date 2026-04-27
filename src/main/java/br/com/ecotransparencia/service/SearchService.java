@@ -4,11 +4,15 @@ import br.com.ecotransparencia.dto.*;
 import br.com.ecotransparencia.entity.AutoInfracao;
 import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.IcmbioAutoInfracao;
+import br.com.ecotransparencia.entity.IcmbioEmbargo;
 import br.com.ecotransparencia.entity.SancaoAdmPublica;
 import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
 import br.com.ecotransparencia.repository.CepimRepository;
 import br.com.ecotransparencia.repository.EmbargoRepository;
+import br.com.ecotransparencia.repository.IcmbioAutoInfracaoRepository;
+import br.com.ecotransparencia.repository.IcmbioEmbargoRepository;
 import br.com.ecotransparencia.repository.SancaoAdmPublicaRepository;
 import br.com.ecotransparencia.repository.TrabalhoEscravoMteRepository;
 import br.com.ecotransparencia.util.DocumentoUtil;
@@ -46,6 +50,12 @@ public class SearchService {
     TrabalhoEscravoMteRepository trabalhoEscravoMteRepository;
 
     @Inject
+    IcmbioAutoInfracaoRepository icmbioAutoInfracaoRepository;
+
+    @Inject
+    IcmbioEmbargoRepository icmbioEmbargoRepository;
+
+    @Inject
     AsgScoreCalculator asgScoreCalculator;
 
     @Inject
@@ -62,40 +72,68 @@ public class SearchService {
             }
         }
 
-        // Busca IBAMA (Fase A) com o documento como veio do request
-        List<Embargo> embargos = embargoRepository.findByDocument(document);
-        List<AutoInfracao> autosInfracao = autoInfracaoRepository.findByDocument(document);
-
-        // Busca fontes Fase B (CEIS/CNEP/CEPIM/MTE) com o documento normalizado
-        // (digit-only via DocumentoUtil; estas tabelas guardam apenas digitos).
+        // Busca IBAMA com documento normalizado (digitos apenas) E como veio,
+        // para tolerar tabelas legadas que possam ter o documento formatado.
+        // Fase C: padroniza normalizacao em todas as fontes.
         String normalized = DocumentoUtil.limpar(document);
+        List<Embargo> embargos = findEmbargos(document, normalized);
+        List<AutoInfracao> autosInfracao = findAutos(document, normalized);
+
+        // Fontes Fase B + Fase C usam o documento normalizado (digit-only).
         List<SancaoAdmPublica> sancoes = sancaoAdmPublicaRepository.findByCpfCnpj(normalized);
         List<Cepim> cepim = cepimRepository.findByCpfCnpj(normalized);
         List<TrabalhoEscravoMte> mte = trabalhoEscravoMteRepository.findByCpfCnpj(normalized);
+        List<IcmbioAutoInfracao> icmbioAutos = icmbioAutoInfracaoRepository.findByCpfCnpj(normalized);
+        List<IcmbioEmbargo> icmbioEmbargos = icmbioEmbargoRepository.findByCpfCnpj(normalized);
 
         boolean noOccurrences = embargos.isEmpty()
                 && autosInfracao.isEmpty()
                 && sancoes.isEmpty()
                 && cepim.isEmpty()
-                && mte.isEmpty();
+                && mte.isEmpty()
+                && icmbioAutos.isEmpty()
+                && icmbioEmbargos.isEmpty();
         if (noOccurrences) {
             return SearchResponse.notFound();
         }
 
         SearchResponse response;
         if (!embargos.isEmpty() || !autosInfracao.isEmpty()) {
-            EntityDto entity = buildEntityDto(embargos, autosInfracao, sancoes, cepim, mte, document, type);
+            EntityDto entity = buildEntityDto(embargos, autosInfracao, sancoes, cepim, mte,
+                    icmbioAutos, icmbioEmbargos, document, type);
             response = SearchResponse.found(entity);
         } else {
-            // Apenas ocorrencias Fase B; nao ha EntityDto agregado por enquanto.
+            // Apenas ocorrencias Fase B/C; nao ha EntityDto agregado por enquanto.
             response = new SearchResponse(true);
         }
 
         response.setSancoesAdmPublica(sancoes.stream().map(this::toSancaoOccurrence).toList());
         response.setImpedimentosCepim(cepim.stream().map(this::toCepimOccurrence).toList());
         response.setTrabalhoEscravo(mte.stream().map(this::toMteOccurrence).toList());
+        response.setIcmbioAutos(icmbioAutos.stream().map(this::toIcmbioAutoOccurrence).toList());
+        response.setIcmbioEmbargos(icmbioEmbargos.stream().map(this::toIcmbioEmbargoOccurrence).toList());
 
         return response;
+    }
+
+    /**
+     * Busca embargos IBAMA tentando primeiro o documento como veio, depois
+     * o normalizado. Tolera tabelas que ainda guardam documento com formatacao.
+     */
+    private List<Embargo> findEmbargos(String raw, String normalized) {
+        List<Embargo> result = embargoRepository.findByDocument(raw);
+        if (result.isEmpty() && normalized != null && !normalized.equals(raw)) {
+            result = embargoRepository.findByDocument(normalized);
+        }
+        return result;
+    }
+
+    private List<AutoInfracao> findAutos(String raw, String normalized) {
+        List<AutoInfracao> result = autoInfracaoRepository.findByDocument(raw);
+        if (result.isEmpty() && normalized != null && !normalized.equals(raw)) {
+            result = autoInfracaoRepository.findByDocument(normalized);
+        }
+        return result;
     }
 
     /**
@@ -154,6 +192,8 @@ public class SearchService {
                 java.util.Collections.emptyList(),
                 java.util.Collections.emptyList(),
                 java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
                 document, type);
     }
 
@@ -161,6 +201,8 @@ public class SearchService {
                                      List<SancaoAdmPublica> sancoes,
                                      List<Cepim> cepimList,
                                      List<TrabalhoEscravoMte> mteList,
+                                     List<IcmbioAutoInfracao> icmbioAutos,
+                                     List<IcmbioEmbargo> icmbioEmbargos,
                                      String document, String type) {
         EntityDto entity = new EntityDto();
 
@@ -183,8 +225,9 @@ public class SearchService {
             entity.setSituacaoCadastral(receitaFederalService.consultar(document));
         }
 
-        // Calcula Score ASG (inclui Fase B: CEIS/CNEP/CEPIM/MTE)
-        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao, sancoes, cepimList, mteList);
+        // Calcula Score ASG (inclui Fase B + C: CEIS/CNEP/CEPIM/MTE + ICMBio)
+        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao, sancoes,
+                cepimList, mteList, icmbioAutos, icmbioEmbargos);
         entity.setAsgScore(asgScore);
         entity.setScore(asgScore.getScore());
         entity.setRiskLevel(asgScore.getRiskLevel());
@@ -339,6 +382,47 @@ public class SearchService {
         dto.setCnae(m.getCnae());
         dto.setDecisaoAdmProcedencia(m.getDecisaoAdmProcedencia());
         dto.setInclusaoCadastroEmpregadores(m.getInclusaoCadastroEmpregadores());
+        return dto;
+    }
+
+    // ---------------------------------------------------------------
+    // Converters Fase C
+    // ---------------------------------------------------------------
+
+    private IcmbioAutoOccurrence toIcmbioAutoOccurrence(IcmbioAutoInfracao a) {
+        IcmbioAutoOccurrence dto = new IcmbioAutoOccurrence();
+        dto.setNumeroAi(a.getNumeroAi());
+        dto.setTipo(a.getTipo());
+        dto.setValorMulta(a.getValorMulta());
+        dto.setAutuado(a.getAutuado());
+        dto.setDescAi(a.getDescAi());
+        dto.setData(a.getData());
+        dto.setAno(a.getAno());
+        dto.setTipoInfra(a.getTipoInfra());
+        dto.setNomeUc(a.getNomeUc());
+        dto.setMunicipio(a.getMunicipio());
+        dto.setUf(a.getUf());
+        dto.setProcesso(a.getProcesso());
+        dto.setJulgamento(a.getJulgamento());
+        return dto;
+    }
+
+    private IcmbioEmbargoOccurrence toIcmbioEmbargoOccurrence(IcmbioEmbargo e) {
+        IcmbioEmbargoOccurrence dto = new IcmbioEmbargoOccurrence();
+        dto.setNumeroEmb(e.getNumeroEmb());
+        dto.setNumeroAi(e.getNumeroAi());
+        dto.setAutuado(e.getAutuado());
+        dto.setDescInfra(e.getDescInfra());
+        dto.setDescSanc(e.getDescSanc());
+        dto.setTipoInfra(e.getTipoInfra());
+        dto.setNomeUc(e.getNomeUc());
+        dto.setMunicipio(e.getMunicipio());
+        dto.setUf(e.getUf());
+        dto.setData(e.getData());
+        dto.setAno(e.getAno());
+        dto.setArea(e.getArea());
+        dto.setProcesso(e.getProcesso());
+        dto.setJulgamento(e.getJulgamento());
         return dto;
     }
 

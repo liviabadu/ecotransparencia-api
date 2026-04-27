@@ -264,11 +264,10 @@ class AsgScoreCalculatorTest {
 
             AsgScoreDto asg = calculator.calculate(Collections.emptyList(), List.of(auto));
 
-            // Score de embargos = 0, peso = 0.5
-            // Score de autos = 18, peso = 0.35
-            // NOVA LOGICA: Considera AMBAS as fontes (Autos E Embargos)
-            // Ponderado = (0*0.5 + 18*0.35) / (0.5 + 0.35) = 6.3 / 0.85 = 7.4 ~ 7
-            assertEquals(7, asg.getScore());
+            // Score de embargos = 0, peso = 0.25 (calibracao 2026-04-27)
+            // Score de autos = 18, peso = 0.18
+            // Ponderado = (0*0.25 + 18*0.18) / (0.25 + 0.18) = 3.24 / 0.43 = 7.53 ~ 8
+            assertEquals(8, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(1, asg.getTotalOcorrencias());
             // Verifica que AMBAS as fontes estao no breakdown
@@ -312,7 +311,7 @@ class AsgScoreCalculatorTest {
                 .findFirst()
                 .orElseThrow();
             assertEquals(15, embargoComponent.getScore());
-            assertEquals(0.5, embargoComponent.getPeso());
+            assertEquals(0.25, embargoComponent.getPeso()); // calibracao ESG 60/20/20
             assertEquals(1, embargoComponent.getQuantidadeOcorrencias());
 
             ScoreComponentDto autoComponent = asg.getBreakdown().stream()
@@ -320,7 +319,7 @@ class AsgScoreCalculatorTest {
                 .findFirst()
                 .orElseThrow();
             assertEquals(8, autoComponent.getScore());
-            assertEquals(0.35, autoComponent.getPeso());
+            assertEquals(0.18, autoComponent.getPeso()); // calibracao ESG 60/20/20
             assertEquals(1, autoComponent.getQuantidadeOcorrencias());
         }
     }
@@ -422,8 +421,9 @@ class AsgScoreCalculatorTest {
                     List.of(cep),
                     List.of(mte));
 
-            // Breakdown deve ter 6 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE
-            assertEquals(6, asg.getBreakdown().size());
+            // Breakdown deve ter 8 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE,
+            // ICMBIO_AUTO, ICMBIO_EMBARGO (overload de 5 args delega ao de 7 com listas vazias).
+            assertEquals(8, asg.getBreakdown().size());
             assertEquals(4, asg.getTotalOcorrencias()); // 2 sancoes + 1 cepim + 1 mte
         }
 
@@ -437,7 +437,8 @@ class AsgScoreCalculatorTest {
             assertEquals(0, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(0, asg.getTotalOcorrencias());
-            assertEquals(6, asg.getBreakdown().size());
+            // 8 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE, ICMBIO_AUTO, ICMBIO_EMBARGO
+            assertEquals(8, asg.getBreakdown().size());
         }
 
         @Test
@@ -453,6 +454,145 @@ class AsgScoreCalculatorTest {
             assertEquals("Baixo", asgOld.getRiskLevel());
             assertEquals(1, asgOld.getTotalOcorrencias());
             assertEquals(2, asgOld.getBreakdown().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Calibracao 2026-04-27: categoria, esfera, transito, recencia, UC integral")
+    class CalibracaoTests {
+
+        @Test
+        @DisplayName("Sancao: inidoneidade vale mais que multa simples")
+        void shouldScoreInidoneidadeHigherThanMulta() {
+            SancaoAdmPublica inidoneidade = new SancaoAdmPublica();
+            inidoneidade.setCadastro(CadastroSancao.CEIS);
+            inidoneidade.setCategoriaSancao("Declaracao de Inidoneidade");
+            inidoneidade.setEsferaOrgao("FEDERAL");
+            inidoneidade.setDataTransitoJulgado(java.time.LocalDate.now());
+
+            SancaoAdmPublica multa = new SancaoAdmPublica();
+            multa.setCadastro(CadastroSancao.CEIS);
+            multa.setCategoriaSancao("Multa simples");
+            multa.setEsferaOrgao("FEDERAL");
+            multa.setDataTransitoJulgado(java.time.LocalDate.now());
+
+            int scoreInid = calculator.calculateSancaoScore(List.of(inidoneidade));
+            int scoreMulta = calculator.calculateSancaoScore(List.of(multa));
+            assertTrue(scoreInid > scoreMulta,
+                    "Inidoneidade (" + scoreInid + ") deve pesar mais que multa (" + scoreMulta + ")");
+            assertEquals(25, scoreInid); // base 25 * 1.0 federal * 1.0 transito
+            assertEquals(8, scoreMulta);  // base 8 * 1.0 * 1.0
+        }
+
+        @Test
+        @DisplayName("Sancao: federal pesa mais que estadual e municipal")
+        void shouldWeightFederalMoreThanStateAndMunicipal() {
+            SancaoAdmPublica federal = sancaoComEsfera("FEDERAL");
+            SancaoAdmPublica estadual = sancaoComEsfera("ESTADUAL");
+            SancaoAdmPublica municipal = sancaoComEsfera("MUNICIPAL");
+
+            int sFed = calculator.calculateSancaoScore(List.of(federal));
+            int sEst = calculator.calculateSancaoScore(List.of(estadual));
+            int sMun = calculator.calculateSancaoScore(List.of(municipal));
+            assertTrue(sFed > sEst && sEst > sMun,
+                    "esperado fed > est > mun, ficou: " + sFed + " > " + sEst + " > " + sMun);
+        }
+
+        @Test
+        @DisplayName("Sancao: sem transito em julgado vale 60% (em recurso)")
+        void shouldDiscountWithoutTransito() {
+            SancaoAdmPublica comTransito = sancaoComEsfera("FEDERAL");
+            comTransito.setDataTransitoJulgado(java.time.LocalDate.now());
+
+            SancaoAdmPublica semTransito = sancaoComEsfera("FEDERAL");
+            semTransito.setDataTransitoJulgado(null);
+
+            int scoreCom = calculator.calculateSancaoScore(List.of(comTransito));
+            int scoreSem = calculator.calculateSancaoScore(List.of(semTransito));
+            // Sem transito = 60% do com transito
+            assertEquals((int) Math.round(scoreCom * 0.6), scoreSem);
+        }
+
+        @Test
+        @DisplayName("Recencia: sancao de 20 anos atras pesa menos que recente")
+        void shouldDecayOldSancao() {
+            SancaoAdmPublica recente = sancaoComEsfera("FEDERAL");
+            recente.setDataInicioSancao(java.time.LocalDate.now());
+
+            SancaoAdmPublica antiga = sancaoComEsfera("FEDERAL");
+            antiga.setDataInicioSancao(java.time.LocalDate.now().minusYears(25));
+
+            int scoreRec = calculator.calculateSancaoScore(List.of(recente));
+            int scoreAnt = calculator.calculateSancaoScore(List.of(antiga));
+            assertTrue(scoreRec > scoreAnt,
+                    "Recente (" + scoreRec + ") deve pesar mais que antiga (" + scoreAnt + ")");
+        }
+
+        @Test
+        @DisplayName("ICMBio: UC de protecao integral (PARNA, REBIO) bonifica score")
+        void shouldBonusForUcProtecaoIntegral() {
+            br.com.ecotransparencia.entity.IcmbioAutoInfracao parna =
+                    new br.com.ecotransparencia.entity.IcmbioAutoInfracao();
+            parna.setVwNumAuto(1);
+            parna.setNomeUc("PARNA de Anavilhanas");
+
+            br.com.ecotransparencia.entity.IcmbioAutoInfracao apa =
+                    new br.com.ecotransparencia.entity.IcmbioAutoInfracao();
+            apa.setVwNumAuto(2);
+            apa.setNomeUc("APA Costa de Itacare");
+
+            int scoreParna = calculator.calculateIcmbioAutoScore(List.of(parna));
+            int scoreApa = calculator.calculateIcmbioAutoScore(List.of(apa));
+            assertTrue(scoreParna > scoreApa,
+                    "PARNA (" + scoreParna + ") deve pesar mais que APA (" + scoreApa + ")");
+            assertEquals(20, scoreParna); // 12 + 8 UC integral
+            assertEquals(12, scoreApa);   // 12 base
+        }
+
+        @Test
+        @DisplayName("CEPIM: tomada de contas especial pesa mais que omissao")
+        void shouldWeightCepimByMotivo() {
+            Cepim grave = new Cepim();
+            grave.setMotivoImpedimento("INSTAURACAO DE TOMADA DE CONTAS ESPECIAL");
+            Cepim leve = new Cepim();
+            leve.setMotivoImpedimento("OMISSAO NO DEVER DE PRESTAR CONTAS");
+
+            int sGrave = calculator.calculateCepimScore(List.of(grave));
+            int sLeve = calculator.calculateCepimScore(List.of(leve));
+            assertTrue(sGrave > sLeve, "TCE (" + sGrave + ") > omissao (" + sLeve + ")");
+            assertEquals(15, sGrave);
+            assertEquals(8, sLeve);
+        }
+
+        @Test
+        @DisplayName("CNEP: bonus por valor de multa alto (acima de 100k)")
+        void shouldBonusCnepByValorMulta() {
+            SancaoAdmPublica cnepMultaAlta = new SancaoAdmPublica();
+            cnepMultaAlta.setCadastro(CadastroSancao.CNEP);
+            cnepMultaAlta.setCategoriaSancao("Multa");
+            cnepMultaAlta.setEsferaOrgao("FEDERAL");
+            cnepMultaAlta.setDataTransitoJulgado(java.time.LocalDate.now());
+            cnepMultaAlta.setValorMulta(new BigDecimal("500000"));
+
+            SancaoAdmPublica cnepMultaBaixa = new SancaoAdmPublica();
+            cnepMultaBaixa.setCadastro(CadastroSancao.CNEP);
+            cnepMultaBaixa.setCategoriaSancao("Multa");
+            cnepMultaBaixa.setEsferaOrgao("FEDERAL");
+            cnepMultaBaixa.setDataTransitoJulgado(java.time.LocalDate.now());
+            cnepMultaBaixa.setValorMulta(new BigDecimal("5000"));
+
+            int sAlta = calculator.calculateSancaoScore(List.of(cnepMultaAlta));
+            int sBaixa = calculator.calculateSancaoScore(List.of(cnepMultaBaixa));
+            assertTrue(sAlta > sBaixa, "Multa alta (" + sAlta + ") > multa baixa (" + sBaixa + ")");
+        }
+
+        private SancaoAdmPublica sancaoComEsfera(String esfera) {
+            SancaoAdmPublica s = new SancaoAdmPublica();
+            s.setCadastro(CadastroSancao.CEIS);
+            s.setCategoriaSancao("Impedimento de licitar");
+            s.setEsferaOrgao(esfera);
+            s.setDataTransitoJulgado(java.time.LocalDate.now());
+            return s;
         }
     }
 }
