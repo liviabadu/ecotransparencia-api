@@ -2,9 +2,16 @@ package br.com.ecotransparencia.service;
 
 import br.com.ecotransparencia.dto.*;
 import br.com.ecotransparencia.entity.AutoInfracao;
+import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.SancaoAdmPublica;
+import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
+import br.com.ecotransparencia.repository.CepimRepository;
 import br.com.ecotransparencia.repository.EmbargoRepository;
+import br.com.ecotransparencia.repository.SancaoAdmPublicaRepository;
+import br.com.ecotransparencia.repository.TrabalhoEscravoMteRepository;
+import br.com.ecotransparencia.util.DocumentoUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -30,6 +37,15 @@ public class SearchService {
     AutoInfracaoRepository autoInfracaoRepository;
 
     @Inject
+    SancaoAdmPublicaRepository sancaoAdmPublicaRepository;
+
+    @Inject
+    CepimRepository cepimRepository;
+
+    @Inject
+    TrabalhoEscravoMteRepository trabalhoEscravoMteRepository;
+
+    @Inject
     AsgScoreCalculator asgScoreCalculator;
 
     @Inject
@@ -46,16 +62,40 @@ public class SearchService {
             }
         }
 
-        // Busca em todas as fontes
+        // Busca IBAMA (Fase A) com o documento como veio do request
         List<Embargo> embargos = embargoRepository.findByDocument(document);
         List<AutoInfracao> autosInfracao = autoInfracaoRepository.findByDocument(document);
 
-        if (embargos.isEmpty() && autosInfracao.isEmpty()) {
+        // Busca fontes Fase B (CEIS/CNEP/CEPIM/MTE) com o documento normalizado
+        // (digit-only via DocumentoUtil; estas tabelas guardam apenas digitos).
+        String normalized = DocumentoUtil.limpar(document);
+        List<SancaoAdmPublica> sancoes = sancaoAdmPublicaRepository.findByCpfCnpj(normalized);
+        List<Cepim> cepim = cepimRepository.findByCpfCnpj(normalized);
+        List<TrabalhoEscravoMte> mte = trabalhoEscravoMteRepository.findByCpfCnpj(normalized);
+
+        boolean noOccurrences = embargos.isEmpty()
+                && autosInfracao.isEmpty()
+                && sancoes.isEmpty()
+                && cepim.isEmpty()
+                && mte.isEmpty();
+        if (noOccurrences) {
             return SearchResponse.notFound();
         }
 
-        EntityDto entity = buildEntityDto(embargos, autosInfracao, document, type);
-        return SearchResponse.found(entity);
+        SearchResponse response;
+        if (!embargos.isEmpty() || !autosInfracao.isEmpty()) {
+            EntityDto entity = buildEntityDto(embargos, autosInfracao, sancoes, cepim, mte, document, type);
+            response = SearchResponse.found(entity);
+        } else {
+            // Apenas ocorrencias Fase B; nao ha EntityDto agregado por enquanto.
+            response = new SearchResponse(true);
+        }
+
+        response.setSancoesAdmPublica(sancoes.stream().map(this::toSancaoOccurrence).toList());
+        response.setImpedimentosCepim(cepim.stream().map(this::toCepimOccurrence).toList());
+        response.setTrabalhoEscravo(mte.stream().map(this::toMteOccurrence).toList());
+
+        return response;
     }
 
     /**
@@ -110,6 +150,18 @@ public class SearchService {
 
     private EntityDto buildEntityDto(List<Embargo> embargos, List<AutoInfracao> autosInfracao,
                                      String document, String type) {
+        return buildEntityDto(embargos, autosInfracao,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                document, type);
+    }
+
+    private EntityDto buildEntityDto(List<Embargo> embargos, List<AutoInfracao> autosInfracao,
+                                     List<SancaoAdmPublica> sancoes,
+                                     List<Cepim> cepimList,
+                                     List<TrabalhoEscravoMte> mteList,
+                                     String document, String type) {
         EntityDto entity = new EntityDto();
 
         // Define ID e nome do primeiro registro encontrado
@@ -131,8 +183,8 @@ public class SearchService {
             entity.setSituacaoCadastral(receitaFederalService.consultar(document));
         }
 
-        // Calcula Score ASG
-        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao);
+        // Calcula Score ASG (inclui Fase B: CEIS/CNEP/CEPIM/MTE)
+        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao, sancoes, cepimList, mteList);
         entity.setAsgScore(asgScore);
         entity.setScore(asgScore.getScore());
         entity.setRiskLevel(asgScore.getRiskLevel());
@@ -244,6 +296,50 @@ public class SearchService {
 
     private String determineEmbargoStatus(Embargo embargo) {
         return embargo.isBaixado() ? "Baixado" : "Ativo";
+    }
+
+    // ---------------------------------------------------------------
+    // Converters Fase B
+    // ---------------------------------------------------------------
+
+    private SancaoAdmPublicaOccurrence toSancaoOccurrence(SancaoAdmPublica s) {
+        SancaoAdmPublicaOccurrence dto = new SancaoAdmPublicaOccurrence();
+        dto.setCadastro(s.getCadastro());
+        dto.setCodigoSancao(s.getCodigoSancao());
+        dto.setNomeSancionado(s.getNomeSancionado());
+        dto.setCategoriaSancao(s.getCategoriaSancao());
+        dto.setValorMulta(s.getValorMulta());
+        dto.setDataInicioSancao(s.getDataInicioSancao());
+        dto.setDataFimSancao(s.getDataFimSancao());
+        dto.setOrgaoSancionador(s.getOrgaoSancionador());
+        dto.setUfOrgao(s.getUfOrgao());
+        dto.setEsferaOrgao(s.getEsferaOrgao());
+        dto.setFundamentacaoLegal(s.getFundamentacaoLegal());
+        return dto;
+    }
+
+    private CepimOccurrence toCepimOccurrence(Cepim c) {
+        CepimOccurrence dto = new CepimOccurrence();
+        dto.setCnpjEntidade(c.getCnpjEntidade());
+        dto.setNomeEntidade(c.getNomeEntidade());
+        dto.setNumeroConvenio(c.getNumeroConvenio());
+        dto.setOrgaoConcedente(c.getOrgaoConcedente());
+        dto.setMotivoImpedimento(c.getMotivoImpedimento());
+        return dto;
+    }
+
+    private TrabalhoEscravoOccurrence toMteOccurrence(TrabalhoEscravoMte m) {
+        TrabalhoEscravoOccurrence dto = new TrabalhoEscravoOccurrence();
+        dto.setAnoAcaoFiscal(m.getAnoAcaoFiscal());
+        dto.setUf(m.getUf());
+        dto.setEmpregador(m.getEmpregador());
+        dto.setCpfCnpjFormatado(m.getCpfCnpjFormatado());
+        dto.setEstabelecimento(m.getEstabelecimento());
+        dto.setTrabalhadoresEnvolvidos(m.getTrabalhadoresEnvolvidos());
+        dto.setCnae(m.getCnae());
+        dto.setDecisaoAdmProcedencia(m.getDecisaoAdmProcedencia());
+        dto.setInclusaoCadastroEmpregadores(m.getInclusaoCadastroEmpregadores());
+        return dto;
     }
 
     // Metodos legados para retrocompatibilidade

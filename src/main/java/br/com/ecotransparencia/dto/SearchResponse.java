@@ -3,6 +3,8 @@ package br.com.ecotransparencia.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+import java.util.List;
+
 @Schema(description = "Resposta da busca de entidades")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SearchResponse {
@@ -18,6 +20,15 @@ public class SearchResponse {
 
     @Schema(description = "Dados da entidade encontrada (null se found=false ou bloqueado)")
     private EntityDto entity;
+
+    @Schema(description = "Sancoes administrativas associadas (CEIS + CNEP) - Fase B")
+    private List<SancaoAdmPublicaOccurrence> sancoesAdmPublica;
+
+    @Schema(description = "Impedimentos no CEPIM associados - Fase B")
+    private List<CepimOccurrence> impedimentosCepim;
+
+    @Schema(description = "Inclusoes na Lista Suja do MTE associadas - Fase B")
+    private List<TrabalhoEscravoOccurrence> trabalhoEscravo;
 
     public SearchResponse() {
     }
@@ -80,5 +91,29 @@ public class SearchResponse {
 
     public void setEntity(EntityDto entity) {
         this.entity = entity;
+    }
+
+    public List<SancaoAdmPublicaOccurrence> getSancoesAdmPublica() {
+        return sancoesAdmPublica;
+    }
+
+    public void setSancoesAdmPublica(List<SancaoAdmPublicaOccurrence> sancoesAdmPublica) {
+        this.sancoesAdmPublica = sancoesAdmPublica;
+    }
+
+    public List<CepimOccurrence> getImpedimentosCepim() {
+        return impedimentosCepim;
+    }
+
+    public void setImpedimentosCepim(List<CepimOccurrence> impedimentosCepim) {
+        this.impedimentosCepim = impedimentosCepim;
+    }
+
+    public List<TrabalhoEscravoOccurrence> getTrabalhoEscravo() {
+        return trabalhoEscravo;
+    }
+
+    public void setTrabalhoEscravo(List<TrabalhoEscravoOccurrence> trabalhoEscravo) {
+        this.trabalhoEscravo = trabalhoEscravo;
     }
 }

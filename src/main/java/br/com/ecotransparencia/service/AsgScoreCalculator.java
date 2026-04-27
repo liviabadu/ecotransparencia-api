@@ -4,7 +4,10 @@ import br.com.ecotransparencia.domain.FonteDados;
 import br.com.ecotransparencia.dto.AsgScoreDto;
 import br.com.ecotransparencia.dto.ScoreComponentDto;
 import br.com.ecotransparencia.entity.AutoInfracao;
+import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.SancaoAdmPublica;
+import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.math.BigDecimal;
@@ -24,14 +27,16 @@ public class AsgScoreCalculator {
     );
 
     /**
-     * Calcula o Score ASG agregando todas as fontes de dados.
-     * IMPORTANTE: O score considera Autos E Embargos juntos (não OU).
-     * Ambas as fontes sempre são incluídas no breakdown.
+     * Calcula o Score ASG agregando apenas IBAMA (Embargos + Autos).
+     *
+     * <p>Mantido por retrocompatibilidade: gera breakdown apenas com EMBARGO
+     * e AUTO_INFRACAO; o denominador da media ponderada usa apenas esses dois
+     * pesos. Para o calculo completo incluindo fontes Fase B
+     * (CEIS/CNEP/CEPIM/MTE), use o overload de 5 parametros.
      */
     public AsgScoreDto calculate(List<Embargo> embargos, List<AutoInfracao> autosInfracao) {
         List<ScoreComponentDto> breakdown = new ArrayList<>();
 
-        // Calcula score de embargos (SEMPRE inclui no breakdown)
         int embargoScore = calculateEmbargoScore(embargos);
         breakdown.add(new ScoreComponentDto(
             FonteDados.EMBARGO.getDescricao(),
@@ -40,7 +45,6 @@ public class AsgScoreCalculator {
             embargos.size()
         ));
 
-        // Calcula score de autos de infracao (SEMPRE inclui no breakdown)
         int autoScore = calculateAutoInfracaoScore(autosInfracao);
         breakdown.add(new ScoreComponentDto(
             FonteDados.AUTO_INFRACAO.getDescricao(),
@@ -49,7 +53,6 @@ public class AsgScoreCalculator {
             autosInfracao.size()
         ));
 
-        // Calcula score final ponderado considerando AMBAS as fontes
         int finalScore = calculateWeightedScoreAll(breakdown);
         int totalOcorrencias = embargos.size() + autosInfracao.size();
 
@@ -60,6 +63,100 @@ public class AsgScoreCalculator {
         asgScore.setBreakdown(breakdown);
 
         return asgScore;
+    }
+
+    /**
+     * Calcula o Score ASG agregando IBAMA + fontes Fase B.
+     *
+     * <p>IMPORTANTE: o score considera todas as fontes simultaneamente. Cada
+     * fonte aparece no breakdown com seu peso configurado em {@link FonteDados}.
+     *
+     * <p>TODO: pesos das fontes Fase B (CEIS/CNEP/CEPIM/MTE) sao provisorios
+     * (peso 0.05-0.10) e devem ser ajustados com input do produto. Ver brief
+     * Fase B (~step 12) para o contexto.
+     */
+    public AsgScoreDto calculate(List<Embargo> embargos,
+                                 List<AutoInfracao> autosInfracao,
+                                 List<SancaoAdmPublica> sancoes,
+                                 List<Cepim> cepim,
+                                 List<TrabalhoEscravoMte> mte) {
+        List<ScoreComponentDto> breakdown = new ArrayList<>();
+
+        int embargoScore = calculateEmbargoScore(embargos);
+        breakdown.add(new ScoreComponentDto(
+            FonteDados.EMBARGO.getDescricao(),
+            embargoScore,
+            FonteDados.EMBARGO.getPeso(),
+            embargos.size()
+        ));
+
+        int autoScore = calculateAutoInfracaoScore(autosInfracao);
+        breakdown.add(new ScoreComponentDto(
+            FonteDados.AUTO_INFRACAO.getDescricao(),
+            autoScore,
+            FonteDados.AUTO_INFRACAO.getPeso(),
+            autosInfracao.size()
+        ));
+
+        // CEIS e CNEP separados no breakdown (mesmo entity, discriminador diferente)
+        long ceisCount = sancoes.stream().filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CEIS).count();
+        long cnepCount = sancoes.stream().filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CNEP).count();
+        int ceisScore = calculateSancaoScore((int) ceisCount);
+        int cnepScore = calculateSancaoScore((int) cnepCount);
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.CEIS.getDescricao(), ceisScore, FonteDados.CEIS.getPeso(), (int) ceisCount));
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.CNEP.getDescricao(), cnepScore, FonteDados.CNEP.getPeso(), (int) cnepCount));
+
+        int cepimScore = calculateSancaoScore(cepim.size());
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.CEPIM.getDescricao(), cepimScore, FonteDados.CEPIM.getPeso(), cepim.size()));
+
+        int mteScore = calculateMteScore(mte);
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.MTE_TRABALHO_ESCRAVO.getDescricao(), mteScore,
+                FonteDados.MTE_TRABALHO_ESCRAVO.getPeso(), mte.size()));
+
+        int finalScore = calculateWeightedScoreAll(breakdown);
+        int totalOcorrencias = embargos.size() + autosInfracao.size()
+                + sancoes.size() + cepim.size() + mte.size();
+
+        AsgScoreDto asgScore = new AsgScoreDto();
+        asgScore.setScore(finalScore);
+        asgScore.setRiskLevel(classifyRiskLevel(finalScore));
+        asgScore.setTotalOcorrencias(totalOcorrencias);
+        asgScore.setBreakdown(breakdown);
+
+        return asgScore;
+    }
+
+    /**
+     * Score generico para sancoes administrativas / impedimentos.
+     *
+     * <p>TODO: criterio provisorio - 10 pontos por ocorrencia, capped em 100.
+     * Substituir por criterio de produto (ex.: peso por categoria de sancao,
+     * valor da multa, esfera do orgao).
+     */
+    int calculateSancaoScore(int count) {
+        return Math.min(count * 10, 100);
+    }
+
+    /**
+     * Score para Lista Suja MTE.
+     *
+     * <p>TODO: criterio provisorio - 15 pontos por ocorrencia (peso maior que
+     * sancoes administrativas dado o nivel de gravidade), +1 ponto por
+     * trabalhador envolvido. Capped em 100.
+     */
+    int calculateMteScore(List<TrabalhoEscravoMte> mte) {
+        int score = 0;
+        for (TrabalhoEscravoMte t : mte) {
+            score += 15;
+            if (t.getTrabalhadoresEnvolvidos() != null) {
+                score += t.getTrabalhadoresEnvolvidos();
+            }
+        }
+        return Math.min(score, 100);
     }
 
     // Fator de redução para embargos baixados (10% do valor normal)

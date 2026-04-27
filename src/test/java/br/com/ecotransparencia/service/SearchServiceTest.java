@@ -1,11 +1,18 @@
 package br.com.ecotransparencia.service;
 
+import br.com.ecotransparencia.domain.CadastroSancao;
 import br.com.ecotransparencia.dto.SearchResponse;
 import br.com.ecotransparencia.dto.SituacaoCadastralDto;
 import br.com.ecotransparencia.entity.AutoInfracao;
+import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.SancaoAdmPublica;
+import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
+import br.com.ecotransparencia.repository.CepimRepository;
 import br.com.ecotransparencia.repository.EmbargoRepository;
+import br.com.ecotransparencia.repository.SancaoAdmPublicaRepository;
+import br.com.ecotransparencia.repository.TrabalhoEscravoMteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +44,15 @@ class SearchServiceTest {
 
     @Mock
     private AutoInfracaoRepository autoInfracaoRepository;
+
+    @Mock
+    private SancaoAdmPublicaRepository sancaoAdmPublicaRepository;
+
+    @Mock
+    private CepimRepository cepimRepository;
+
+    @Mock
+    private TrabalhoEscravoMteRepository trabalhoEscravoMteRepository;
 
     @Mock
     private AsgScoreCalculator asgScoreCalculator;
@@ -205,6 +221,157 @@ class SearchServiceTest {
             assertFalse(response.isFound());
             assertNull(response.getBloqueadoPorSituacaoCadastral());
             assertNull(response.getEntity());
+        }
+    }
+
+    @Nested
+    @DisplayName("Fase B: agregacao de novas fontes (CEIS/CNEP/CEPIM/MTE)")
+    class FaseBAggregacaoTests {
+
+        @Test
+        @DisplayName("Consulta as 3 novas fontes por CPF/CNPJ normalizado")
+        void shouldQueryAllNewSources() {
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoAtiva);
+            when(embargoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(cepimRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            verify(sancaoAdmPublicaRepository).findByCpfCnpj(CNPJ_VALIDO);
+            verify(cepimRepository).findByCpfCnpj(CNPJ_VALIDO);
+            verify(trabalhoEscravoMteRepository).findByCpfCnpj(CNPJ_VALIDO);
+        }
+
+        @Test
+        @DisplayName("Popula sancoesAdmPublica em SearchResponse quando ha CEIS/CNEP")
+        void shouldPopulateSancoesInResponse() {
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoAtiva);
+            when(embargoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            SancaoAdmPublica ceis = new SancaoAdmPublica();
+            ceis.setCadastro(CadastroSancao.CEIS);
+            ceis.setCpfCnpj(CNPJ_VALIDO);
+            ceis.setNomeSancionado("Empresa Teste");
+            ceis.setOrgaoSancionador("Prefeitura X");
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(List.of(ceis));
+            when(cepimRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            SearchResponse response = searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            assertNotNull(response.getSancoesAdmPublica());
+            assertEquals(1, response.getSancoesAdmPublica().size());
+            assertEquals("Empresa Teste", response.getSancoesAdmPublica().get(0).getNomeSancionado());
+            assertEquals(CadastroSancao.CEIS, response.getSancoesAdmPublica().get(0).getCadastro());
+        }
+
+        @Test
+        @DisplayName("Popula impedimentosCepim em SearchResponse quando ha CEPIM")
+        void shouldPopulateCepimInResponse() {
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoAtiva);
+            when(embargoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            Cepim cep = new Cepim();
+            cep.setCnpjEntidade(CNPJ_VALIDO);
+            cep.setNomeEntidade("Entidade X");
+            cep.setMotivoImpedimento("Irregularidade");
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(cepimRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(List.of(cep));
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            SearchResponse response = searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            assertNotNull(response.getImpedimentosCepim());
+            assertEquals(1, response.getImpedimentosCepim().size());
+            assertEquals("Entidade X", response.getImpedimentosCepim().get(0).getNomeEntidade());
+        }
+
+        @Test
+        @DisplayName("Popula trabalhoEscravo em SearchResponse quando ha MTE")
+        void shouldPopulateMteInResponse() {
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoAtiva);
+            when(embargoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            TrabalhoEscravoMte mte = new TrabalhoEscravoMte();
+            mte.setCpfCnpj(CNPJ_VALIDO);
+            mte.setCpfCnpjFormatado("11.222.333/0001-81");
+            mte.setEmpregador("Fulano");
+            mte.setUf("SP");
+            mte.setTrabalhadoresEnvolvidos(3);
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(cepimRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(List.of(mte));
+
+            SearchResponse response = searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            assertNotNull(response.getTrabalhoEscravo());
+            assertEquals(1, response.getTrabalhoEscravo().size());
+            assertEquals("Fulano", response.getTrabalhoEscravo().get(0).getEmpregador());
+            assertEquals(3, response.getTrabalhoEscravo().get(0).getTrabalhadoresEnvolvidos());
+        }
+
+        @Test
+        @DisplayName("Quando ha apenas ocorrencias em fontes Fase B, found=true e listas presentes")
+        void shouldReturnFoundWhenOnlyPhaseBOccurrences() {
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoAtiva);
+            when(embargoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            SancaoAdmPublica ceis = new SancaoAdmPublica();
+            ceis.setCadastro(CadastroSancao.CEIS);
+            ceis.setCpfCnpj(CNPJ_VALIDO);
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(List.of(ceis));
+            when(cepimRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(CNPJ_VALIDO)).thenReturn(Collections.emptyList());
+
+            SearchResponse response = searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            assertTrue(response.isFound());
+            assertEquals(1, response.getSancoesAdmPublica().size());
+        }
+
+        @Test
+        @DisplayName("Bloqueio por situacao cadastral nao consulta fontes Fase B")
+        void shouldNotQueryPhaseBSourcesWhenBlocked() {
+            SituacaoCadastralDto situacaoBaixada = SituacaoCadastralDto.valido("BAIXADA", "CNPJ baixado");
+            when(receitaFederalService.consultarCnpj(CNPJ_VALIDO)).thenReturn(situacaoBaixada);
+
+            searchService.searchByDocument(CNPJ_VALIDO, "cnpj");
+
+            verify(sancaoAdmPublicaRepository, never()).findByCpfCnpj(anyString());
+            verify(cepimRepository, never()).findByCpfCnpj(anyString());
+            verify(trabalhoEscravoMteRepository, never()).findByCpfCnpj(anyString());
+        }
+
+        @Test
+        @DisplayName("Normaliza documento com pontuacao antes de consultar fontes Fase B")
+        void shouldNormalizeDocumentBeforeQueryingPhaseB() {
+            // CPF formatado deve ser normalizado para apenas digitos antes da query
+            SituacaoCadastralDto situacaoAtiva = SituacaoCadastralDto.valido("ATIVA", "Cadastro ativo");
+            String cpfNormalized = "52998224725";
+            when(embargoRepository.findByDocument("529.982.247-25")).thenReturn(Collections.emptyList());
+            when(autoInfracaoRepository.findByDocument("529.982.247-25")).thenReturn(Collections.emptyList());
+            when(sancaoAdmPublicaRepository.findByCpfCnpj(cpfNormalized)).thenReturn(Collections.emptyList());
+            when(cepimRepository.findByCpfCnpj(cpfNormalized)).thenReturn(Collections.emptyList());
+            when(trabalhoEscravoMteRepository.findByCpfCnpj(cpfNormalized)).thenReturn(Collections.emptyList());
+
+            searchService.searchByDocument("529.982.247-25", "cpf");
+
+            // Fontes Fase B sao consultadas com a forma normalizada (digit-only)
+            verify(sancaoAdmPublicaRepository).findByCpfCnpj(cpfNormalized);
+            verify(cepimRepository).findByCpfCnpj(cpfNormalized);
+            verify(trabalhoEscravoMteRepository).findByCpfCnpj(cpfNormalized);
         }
     }
 }
