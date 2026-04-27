@@ -8,7 +8,7 @@
 
 API REST para análise de risco ASG (Ambiental, Social, Governança) de pessoas físicas e jurídicas a partir de **fontes públicas brasileiras**: IBAMA, ICMBio, CEIS/CNEP/CEPIM (Portal da Transparência) e a Lista Suja do Trabalho Escravo do MTE. Consultando por CPF ou CNPJ, a API agrega ocorrências das 7 fontes, calcula um Score ASG calibrado e devolve um diagnóstico unificado.
 
-> 💡 **Em uma frase:** consulte um CPF/CNPJ e receba uma nota de risco ASG de 0 a 100, agregando 8 bases públicas (IBAMA, ICMBio, CEIS, CNEP, CEPIM, MTE) com decay temporal e validação na Receita Federal.
+> 💡 **Em uma frase:** consulte um CNPJ e receba uma nota de risco ASG de 0 a 100, agregando 8 bases públicas (IBAMA, ICMBio, CEIS, CNEP, CEPIM, MTE) com decay temporal e validação na Receita Federal.
 
 ## Sumário
 
@@ -33,7 +33,7 @@ API REST para análise de risco ASG (Ambiental, Social, Governança) de pessoas 
 
 ### Para que serve
 
-Empresas, instituições financeiras e órgãos públicos consultam o histórico ambiental, trabalhista e administrativo de fornecedores, parceiros e clientes antes de fechar negócio. O EcoTransparência consolida 7 bases públicas heterogêneas em uma única consulta por documento (CPF/CNPJ), aplicando um score calibrado para classificar o risco.
+Empresas, instituições financeiras e órgãos públicos consultam o histórico ambiental, trabalhista e administrativo de fornecedores, parceiros e clientes antes de fechar negócio. O EcoTransparência consolida 7 bases públicas heterogêneas em uma única consulta por documento (CNPJ), aplicando um score calibrado para classificar o risco.
 
 Casos de uso típicos:
 
