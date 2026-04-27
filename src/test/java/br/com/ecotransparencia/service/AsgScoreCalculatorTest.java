@@ -422,8 +422,9 @@ class AsgScoreCalculatorTest {
                     List.of(cep),
                     List.of(mte));
 
-            // Breakdown deve ter 6 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE
-            assertEquals(6, asg.getBreakdown().size());
+            // Breakdown deve ter 8 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE,
+            // ICMBIO_AUTO, ICMBIO_EMBARGO (overload de 5 args delega ao de 7 com listas vazias).
+            assertEquals(8, asg.getBreakdown().size());
             assertEquals(4, asg.getTotalOcorrencias()); // 2 sancoes + 1 cepim + 1 mte
         }
 
@@ -437,7 +438,8 @@ class AsgScoreCalculatorTest {
             assertEquals(0, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(0, asg.getTotalOcorrencias());
-            assertEquals(6, asg.getBreakdown().size());
+            // 8 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE, ICMBIO_AUTO, ICMBIO_EMBARGO
+            assertEquals(8, asg.getBreakdown().size());
         }
 
         @Test
