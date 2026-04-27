@@ -1,373 +1,413 @@
 # EcoTransparencia API
 
-API REST para consulta de entidades com registros ambientais no IBAMA (Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis). Permite verificar se pessoas físicas ou jurídicas possuem áreas embargadas ou autos de infração ambientais, calculando um Score ASG (Ambiental, Social e Governança) para avaliação de risco.
+API REST para análise de risco ASG (Ambiental, Social, Governança) de pessoas físicas e jurídicas a partir de **fontes públicas brasileiras**: IBAMA, ICMBio, CEIS/CNEP/CEPIM (Portal da Transparência) e a Lista Suja do Trabalho Escravo do MTE. Consultando por CPF ou CNPJ, a API agrega ocorrências das 7 fontes, calcula um Score ASG calibrado e devolve um diagnóstico unificado.
 
 ## Sumário
 
-- [Visão de Negócio](#visão-de-negócio)
-  - [Contexto](#contexto)
-  - [Funcionalidades](#funcionalidades)
+- [Visão de negócio](#visão-de-negócio)
+  - [Para que serve](#para-que-serve)
+  - [Fontes de dados](#fontes-de-dados)
   - [Score ASG](#score-asg)
-  - [Validação de Situação Cadastral](#validação-de-situação-cadastral)
-- [Visão Técnica](#visão-técnica)
-  - [Stack Tecnológico](#stack-tecnológico)
+- [Visão técnica](#visão-técnica)
+  - [Stack](#stack)
   - [Arquitetura](#arquitetura)
-  - [Fontes de Dados](#fontes-de-dados)
-  - [Endpoints da API](#endpoints-da-api)
-  - [Infraestrutura](#infraestrutura)
+  - [Banco de dados e migrações](#banco-de-dados-e-migrações)
+  - [Carga inicial e idempotência](#carga-inicial-e-idempotência)
+  - [Endpoints](#endpoints)
   - [Testes](#testes)
-- [Desenvolvimento](#desenvolvimento)
-  - [Pré-requisitos](#pré-requisitos)
-  - [Executando localmente](#executando-localmente)
-  - [Docker](#docker)
-- [Deploy](#deploy)
+- [Desenvolvimento local](#desenvolvimento-local)
+- [Deploy (Google Cloud)](#deploy-google-cloud)
+- [Pendências e próximos passos](#pendências-e-próximos-passos)
 
 ---
 
-## Visão de Negócio
+## Visão de negócio
 
-### Contexto
+### Para que serve
 
-O **EcoTransparencia** é uma solução voltada para **compliance ambiental** e **análise de risco ASG** (Ambiental, Social e Governança). A API permite que empresas, instituições financeiras e órgãos públicos consultem o histórico ambiental de fornecedores, parceiros comerciais e clientes antes de estabelecer relações comerciais.
+Empresas, instituições financeiras e órgãos públicos consultam o histórico ambiental, trabalhista e administrativo de fornecedores, parceiros e clientes antes de fechar negócio. O EcoTransparência consolida 7 bases públicas heterogêneas em uma única consulta por documento (CPF/CNPJ), aplicando um score calibrado para classificar o risco.
 
-O sistema utiliza dados públicos do **IBAMA**, agregando informações de:
+Casos de uso típicos:
 
-- **Áreas Embargadas**: Termos de Embargo lavrados contra pessoas físicas e jurídicas por infrações ambientais como desmatamento ilegal, queimadas e outras atividades degradadoras do meio ambiente.
-- **Autos de Infração**: Multas aplicadas pelo IBAMA por descumprimento da legislação ambiental.
+- **Onboarding de fornecedores**: bloquear contratação se houver embargo IBAMA ativo, presença na Lista Suja do MTE, ou inidoneidade no CEIS.
+- **Compliance de crédito**: enriquecer a análise de risco com sinais ambientais e de governança que não aparecem em birôs tradicionais.
+- **Due diligence M&A**: histórico ambiental + sanções administrativas em um único endpoint.
 
-### Funcionalidades
+### Fontes de dados
 
-#### 1. Consulta por Documento (CPF/CNPJ)
+| Fonte | Origem | Bloco ESG | Volume típico | Modo de carga |
+|---|---|:---:|---:|---|
+| **IBAMA — Embargos** | Portal IBAMA (CSV) | E | ~88k linhas | CSV no boot |
+| **IBAMA — Autos de Infração** | Portal IBAMA (CSVs por ano 1977-2025) | E | ~700k linhas | CSV no boot |
+| **ICMBio — Autos de Infração** | Dados abertos ICMBio (XLSX + SHP) | E | ~41k linhas | XLSX (POI streaming) + SHP (GeoTools) |
+| **ICMBio — Embargos** | Dados abertos ICMBio (XLSX + SHP) | E | ~14k linhas | XLSX + SHP, geometria poligonal |
+| **CEIS** — Cadastro de Empresas Inidôneas e Suspensas | Portal da Transparência / CGU | G | ~22k linhas | CSV no boot (ISO-8859-1) |
+| **CNEP** — Cadastro Nacional de Empresas Punidas | Portal da Transparência / CGU | G | ~1,6k linhas | CSV no boot (ISO-8859-1) |
+| **CEPIM** — Entidades sem fins lucrativos impedidas | Portal da Transparência / CGU | G | ~3,5k linhas | CSV no boot |
+| **MTE — Lista Suja do Trabalho Escravo** | Ministério do Trabalho e Emprego | S | ~600 linhas | CSV no boot (Cp1252) |
 
-Permite buscar uma entidade pelo seu documento fiscal, retornando:
-
-- Dados da entidade (nome, documento)
-- Score ASG calculado
-- Nível de risco (Baixo, Médio, Alto, Crítico)
-- Lista de embargos ambientais
-- Lista de autos de infração
-- Situação cadastral na Receita Federal (para CNPJ)
-
-#### 2. Consulta por Nome
-
-Busca parcial por nome da pessoa física ou jurídica, útil quando não se possui o documento completo.
-
-#### 3. Bloqueio por Situação Cadastral
-
-Para consultas de CNPJ, a API valida a situação cadastral na Receita Federal:
-- **ATIVA**: Permite a análise ASG completa
-- **BAIXADA/INAPTA/SUSPENSA**: Bloqueia a consulta, retornando apenas a situação cadastral
+A geometria do ICMBio (Point para autos, Polygon/MultiPolygon para embargos, EPSG:4674 SIRGAS 2000) é persistida em colunas PostGIS e fica disponível para futuros endpoints de mapa. Não é exposta em DTOs no momento.
 
 ### Score ASG
 
-O Score ASG é um indicador numérico (0-100) que representa o risco ambiental de uma entidade, calculado com base em múltiplos critérios:
+O score é uma **média ponderada** que considera as 8 fontes (IBAMA Embargos, IBAMA Autos, ICMBio Embargos, ICMBio Autos, MTE, CNEP, CEIS, CEPIM). Os pesos somam **1,00** e seguem distribuição **ESG 60/20/20**:
 
-#### Critérios de Cálculo - Embargos (Peso: 50%)
+| Fonte | Bloco | Peso |
+|---|:---:|---:|
+| IBAMA Embargos | E | **0,25** |
+| IBAMA Autos | E | 0,18 |
+| ICMBio Embargos | E | 0,10 |
+| ICMBio Autos | E | 0,07 |
+| MTE Trabalho Escravo | S | **0,20** |
+| CNEP | G | 0,08 |
+| CEIS | G | 0,07 |
+| CEPIM | G | 0,05 |
+| **Total** | | **1,00** |
 
-| Critério | Pontos |
-|----------|--------|
-| Por cada embargo ativo | +15 |
-| Relacionado a desmatamento (SIT_DESMATAMENTO = 'D') | +10 |
-| Em bioma sensível (Amazônia, Mata Atlântica) | +5 |
-| Por área embargada (a cada 10 hectares, máx. +10) | +1 a +10 |
-| Embargo baixado | 10% do valor normal |
+**Critérios calibrados (2026-04):**
 
-#### Critérios de Cálculo - Autos de Infração (Peso: 35%)
+- **Categoria de sanção (CEIS/CNEP)**: inidoneidade=25 · impedimento/proibição=12 · suspensão=10 · multa/publicação=8 · demais=6.
+- **Esfera do órgão (CEIS/CNEP)**: federal ×1,0 · estadual ×0,7 · municipal ×0,5.
+- **Trânsito em julgado (CEIS/CNEP)**: confirmado ×1,0 · em recurso ×0,6.
+- **Recência (todas as fontes)**: ≤5 anos ×1,0 · 5-10 anos ×0,7 · 10-20 anos ×0,4 · >20 anos ×0,2 (decay temporal).
+- **UC de proteção integral (ICMBio)**: PARNA, REBIO, ESEC, MONA, REVIS recebem +8 pontos sobre uso sustentável (RESEX, FLONA, APA).
+- **Bonus**: CNEP soma faixa por valor da multa · MTE soma +5 com decisão administrativa de procedência + 1 por trabalhador envolvido · CEPIM pondera por motivo (TCE > irregularidade > omissão).
+- **Embargos IBAMA**: +15 base · +10 desmatamento · +5 bioma sensível (Amazônia, Mata Atlântica) · +1/10ha (max +10) · ×0,1 se baixado.
+- **Autos IBAMA**: +8 base · +5 intencional · +3 efeito grave · +5 bioma sensível · +2 a +12 por faixa de multa.
 
-| Critério | Pontos |
-|----------|--------|
-| Por cada auto de infração (não cancelado) | +8 |
-| Conduta intencional | +5 |
-| Efeito grave/severo no meio ambiente | +3 |
-| Bioma sensível atingido | +5 |
-| Valor da multa até R$ 10.000 | +2 |
-| Valor da multa R$ 10.001 a R$ 50.000 | +5 |
-| Valor da multa R$ 50.001 a R$ 100.000 | +8 |
-| Valor da multa acima de R$ 100.000 | +12 |
+**Classificação de risco** (`src/.../service/AsgScoreCalculator.java#classifyRiskLevel`):
 
-#### Classificação de Risco
+| Score | Nível |
+|---:|---|
+| 0-25 | Baixo |
+| 26-50 | Médio |
+| 51-79 | Alto |
+| 80-100 | Crítico |
 
-| Score | Nível de Risco | Descrição |
-|-------|----------------|-----------|
-| 0-25 | Baixo | Entidade com histórico ambiental limpo ou ocorrências antigas/baixadas |
-| 26-50 | Médio | Entidade com algumas ocorrências que merecem atenção |
-| 51-79 | Alto | Entidade com histórico significativo de infrações ambientais |
-| 80-100 | Crítico | Entidade com grave histórico ambiental, requer análise aprofundada |
+> Os pesos e critérios estão documentados in-line nos `@TODO` do `AsgScoreCalculator` e em `FonteDados.java`. Calibrações futuras (de produto) devem atualizar tanto a fórmula quanto os testes em `AsgScoreCalculatorTest`.
 
-### Validação de Situação Cadastral
+### Validação de situação cadastral (CNPJ)
 
-Antes de realizar a análise ASG de um CNPJ, a API consulta a situação cadastral na Receita Federal através da [CNPJA API Open](https://cnpja.com/api/open):
+Antes da análise ASG, todo CNPJ é validado contra a Receita Federal via [CNPJA API Open](https://cnpja.com/api/open):
 
-- **Objetivo**: Evitar análises de empresas inativas ou em situação irregular
-- **Comportamento**: Se a empresa não estiver com situação "ATIVA", a consulta é bloqueada
-- **Transparência**: O motivo do bloqueio é informado na resposta da API
+- **ATIVA** → segue para a análise.
+- **BAIXADA / SUSPENSA / INAPTA / INDISPONÍVEL** → bloqueia a análise; resposta contém `bloqueadoPorSituacaoCadastral: true` e a `situacaoCadastral`.
+
+O bean `ReceitaFederalServiceStub` (default em dev/test) sempre retorna ATIVA. O bean real (`ReceitaFederalServiceImpl`) é ativado em build com `-Decotransparencia.receita-federal.use-real-api=true` (ligado em `%prod`).
 
 ---
 
-## Visão Técnica
+## Visão técnica
 
-### Stack Tecnológico
+### Stack
 
-| Componente | Tecnologia | Versão | Justificativa |
-|------------|------------|--------|---------------|
-| **Framework** | [Quarkus](https://quarkus.io/) | 3.30.2 | Framework cloud-native Java com startup rápido, baixo consumo de memória e suporte nativo a containers |
-| **Linguagem** | Java | 21 LTS | Versão LTS mais recente com recursos modernos (records, pattern matching, virtual threads) |
-| **REST** | Quarkus REST (RESTEasy Reactive) | - | Implementação reativa de JAX-RS otimizada para Quarkus |
-| **ORM** | Hibernate ORM com Panache | - | Simplifica operações de banco de dados com padrão Active Record |
-| **Banco de Dados (dev/prod)** | H2 (in-memory) | - | Banco embarcado para simplificar deploy, dados carregados no startup |
-| **Banco de Dados (futuro)** | MySQL | - | Preparado para migração quando necessário |
-| **Serialização** | Jackson | - | Serialização JSON padrão do ecossistema Java |
-| **OpenAPI/Swagger** | SmallRye OpenAPI | - | Documentação automática da API com Swagger UI |
-| **REST Client** | Quarkus REST Client | - | Cliente HTTP declarativo para APIs externas (CNPJA) |
-| **CSV Parsing** | OpenCSV | 5.9 | Parsing eficiente de arquivos CSV grandes do IBAMA |
-| **Testes de Contrato** | Pact JVM | 4.7.0-beta.1 | Consumer-Driven Contract Testing entre frontend e backend |
-| **Testes** | JUnit 5, Mockito, REST Assured | - | Stack padrão de testes para APIs Java |
+| Componente | Tecnologia | Versão |
+|---|---|---|
+| Framework | [Quarkus](https://quarkus.io/) | 3.30.2 |
+| Linguagem | Java | 21 LTS |
+| Banco (dev/staging/prod) | **PostgreSQL 16 + PostGIS** | — |
+| Banco (testes unitários) | H2 + H2GIS | — |
+| Migrações de schema | Flyway | (BOM Quarkus) |
+| ORM | Hibernate ORM Panache + Hibernate Spatial | 7.1.10.Final |
+| Geometria | JTS (`org.locationtech.jts`) | 1.20.0 |
+| CSV parsing | OpenCSV | 5.9 |
+| XLSX streaming | Apache POI (XSSFReader SAX) | 5.4.0 |
+| Shapefile | GeoTools (gt-shapefile, gt-referencing, gt-epsg-hsql) | 33.0 |
+| Spatial em testes | H2GIS (orbisgis) | 2.2.3 |
+| OpenAPI / Swagger | SmallRye OpenAPI | (BOM) |
+| REST Client (CNPJA) | Quarkus REST Client | (BOM) |
+| Testes | JUnit 5, Mockito, REST Assured, Pact (consumer + provider) | — |
 
 ### Arquitetura
 
 ```
 src/main/java/br/com/ecotransparencia/
-├── client/                    # Clientes REST para APIs externas
-│   ├── CnpjaApiClient.java    # Cliente para CNPJA API (Receita Federal)
-│   └── CnpjaApiResponse.java  # DTO de resposta da CNPJA
-├── domain/                    # Domínio e regras de negócio
-│   └── FonteDados.java        # Enum com fontes de dados e pesos do Score ASG
-├── dto/                       # Data Transfer Objects
-│   ├── AsgScoreDto.java       # Score ASG com breakdown por fonte
-│   ├── AutoInfracaoDto.java   # DTO de auto de infração
-│   ├── EntityDto.java         # Entidade consultada (pessoa/empresa)
-│   ├── LocationDto.java       # Localização geográfica
-│   ├── OccurrenceDto.java     # Ocorrência de embargo
-│   ├── OcorrenciasAgrupadasDto.java # Agrupamento de ocorrências
-│   ├── ScoreComponentDto.java # Componente do score (breakdown)
-│   ├── SearchResponse.java    # Resposta da API de busca
-│   └── SituacaoCadastralDto.java # Situação na Receita Federal
-├── entity/                    # Entidades JPA
-│   ├── AutoInfracao.java      # Mapeamento da tabela auto_infracao
-│   └── Embargo.java           # Mapeamento da tabela embargo
-├── repository/                # Repositórios de dados
-│   ├── AutoInfracaoRepository.java
-│   └── EmbargoRepository.java
-├── resource/                  # Controllers REST (JAX-RS)
-│   └── SearchResource.java    # Endpoints de busca
-├── service/                   # Serviços de negócio
-│   ├── AsgScoreCalculator.java        # Cálculo do Score ASG
-│   ├── ReceitaFederalService.java     # Interface de consulta RF
-│   ├── ReceitaFederalServiceImpl.java # Implementação real (CNPJA API)
-│   ├── ReceitaFederalServiceStub.java # Stub para dev/testes
-│   └── SearchService.java             # Orquestração de buscas
-├── startup/                   # Inicialização da aplicação
-│   ├── IbamaAutoInfracaoDataLoader.java # Carrega autos de infração
-│   └── IbamaDataLoader.java           # Carrega embargos
-└── util/                      # Utilitários
-    └── DocumentoUtil.java     # Validação de CPF/CNPJ
+├── client/                        # CnpjaApiClient + DTOs externos
+├── domain/                        # CadastroSancao, FonteDados (enum + pesos)
+├── dto/                           # Camada de saída
+│   ├── EntityDto.java             # Entidade unificada
+│   ├── SearchResponse.java        # Resposta com 5 listas (IBAMA + Fase B + Fase C)
+│   ├── AsgScoreDto.java + ScoreComponentDto.java
+│   └── *Occurrence.java           # SancaoAdmPublica, Cepim, TrabalhoEscravo, IcmbioAuto, IcmbioEmbargo
+├── entity/                        # JPA entities (PostGIS-aware)
+│   ├── Embargo.java               # IBAMA
+│   ├── AutoInfracao.java          # IBAMA
+│   ├── SancaoAdmPublica.java      # CEIS+CNEP unificados (discriminator)
+│   ├── Cepim.java                 # CEPIM
+│   ├── TrabalhoEscravoMte.java    # MTE
+│   ├── IcmbioAutoInfracao.java    # ICMBio + Point geometry
+│   ├── IcmbioEmbargo.java         # ICMBio + Geometry (poligonos)
+│   └── DataLoadMarker.java        # idempotencia de carga
+├── repository/                    # Panache repositories (1 por entidade)
+├── resource/SearchResource.java   # endpoints REST
+├── service/
+│   ├── SearchService.java         # orquestra busca em 7 fontes + Receita Federal
+│   ├── AsgScoreCalculator.java    # score calibrado, breakdown por fonte
+│   └── ReceitaFederalService(Impl|Stub).java
+├── startup/                       # @Observes StartupEvent loaders
+│   ├── IbamaDataLoader.java       # embargos IBAMA
+│   ├── IbamaAutoInfracaoDataLoader.java
+│   ├── SancaoAdmPublicaLoader.java # CEIS+CNEP
+│   ├── CepimLoader.java
+│   ├── TrabalhoEscravoMteLoader.java
+│   └── IcmbioLoader.java          # XLSX (POI) + SHP (GeoTools), join por vw_num_*
+└── util/
+    ├── DocumentoUtil.java         # CPF/CNPJ
+    ├── CsvParserBuilder.java      # OpenCSV factory por charset
+    ├── LatestCsvByPattern.java    # glob de arquivos com prefixo de data
+    ├── XlsxStreamReader.java      # POI XSSFReader + SAX (40k+ linhas sem OOM)
+    └── ShapefileGeometryReader.java # GeoTools, retorna Map<id, Geometry>
 ```
 
-### Fontes de Dados
+### Banco de dados e migrações
 
-#### 1. Áreas Embargadas IBAMA
+Schema gerenciado **exclusivamente por Flyway** — Hibernate `database.generation=none`. Migrações em `src/main/resources/db/migration/`:
 
-- **Origem**: [Portal IBAMA - Áreas Embargadas](https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php)
-- **Formato**: CSV delimitado por `;` (~125MB)
-- **Registros**: Histórico desde 1987
-- **Campos principais**: SEQ_TAD, CPF_CNPJ_EMBARGADO, NOME_PESSOA_EMBARGADA, DAT_EMBARGO, SIT_DESMATAMENTO, QTD_AREA_EMBARGADA, DES_TIPO_BIOMA
+| Versão | Conteúdo |
+|---|---|
+| `V1__enable_postgis.sql` | `CREATE EXTENSION IF NOT EXISTS postgis;` |
+| `V2__embargo_and_auto_infracao.sql` | DDL das tabelas IBAMA |
+| `V3__data_load_marker.sql` | tabela de marker de idempotência |
+| `V4__sancao_adm_publica.sql` | CEIS+CNEP unificado |
+| `V5__cepim.sql` | CEPIM |
+| `V6__trabalho_escravo_mte.sql` | MTE |
+| `V7__indices_cpf_cnpj.sql` | índices em todas as tabelas para perf de busca |
+| `V8__icmbio_auto_infracao.sql` | tabela + `geometry(Point, 4674)` + GIST index |
+| `V9__icmbio_embargo.sql` | tabela + `geometry(Geometry, 4674)` + GIST index |
+| `V10__icmbio_numeric_unbounded.sql` | ALTER em colunas numéricas (XLSX tem valores extremos) |
 
-#### 2. Autos de Infração IBAMA
+**Em testes** (`%test`), Flyway é desabilitado e Hibernate gera o schema via `drop-and-create`. H2GIS é carregado via `INIT=...CALL H2GIS_SPATIAL()` na URL JDBC para suportar tipos `geometry`.
 
-- **Origem**: Dados públicos do IBAMA
-- **Formato**: CSVs por ano (`auto_infracao_ano_YYYY.csv`)
-- **Campos principais**: SEQ_AUTO_INFRACAO, CPF_CNPJ_INFRATOR, NOME_INFRATOR, VAL_AUTO_INFRACAO, GRAVIDADE_INFRACAO, DS_BIOMAS_ATINGIDOS
+### Carga inicial e idempotência
 
-#### 3. CNPJA API Open
+A primeira inicialização carrega os ~852k registros das 7 fontes em **~4 minutos**. A tabela `data_load_marker` registra cada fonte carregada (ex.: `ibama_embargo`, `icmbio_auto_v1`, `sancao_adm_publica_v1`); boots subsequentes saltam fontes já marcadas (~30s).
 
-- **Origem**: [CNPJA API](https://cnpja.com/api/open)
-- **Função**: Consulta situação cadastral de CNPJ na Receita Federal
-- **Uso**: Validação prévia antes da análise ASG
+Cada loader:
 
-### Endpoints da API
+1. Verifica marker → skip se já carregado.
+2. Faz **dedupe em memória** por chave primária natural (CSV/XLSX podem ter duplicatas — IBAMA tem ao menos 1 `seq_tad` repetido).
+3. Persiste em batches de 500-1000 registros.
+4. Insere o marker no commit final.
 
-#### Buscar por Documento
+Os arquivos de origem ficam em `docs/<fonte>/` em desenvolvimento; em produção, `cloudbuild.yaml` baixa do bucket GCS para `/deployments/data/<fonte>/` antes do `COPY` no Dockerfile.
 
-```http
-GET /api/search/document?document={cpf_ou_cnpj}&type={cpf|cnpj}
-```
+**ICMBio** usa estratégia híbrida: atributos vêm do XLSX via Apache POI streaming (40k+ linhas sem carregar em memória); geometria vem do `.shp` via GeoTools, joined por `vw_num_auto`/`vw_num_emb`. Linhas sem geometria correspondente são persistidas com `geometria=null` e contadas no log.
 
-**Exemplo de resposta (encontrado):**
+### Endpoints
+
+#### `GET /api/search/document?document={doc}&type={cpf|cnpj}`
+
+Busca agregada nas 7 fontes. Para CNPJ, valida situação cadastral antes.
+
+**Resposta com ocorrências:**
 ```json
 {
   "found": true,
   "entity": {
-    "id": "1872430",
-    "name": "EMPRESA EXEMPLO LTDA",
-    "document": "12345678000190",
+    "id": "1829644",
+    "name": "DELZI MACHADO ALVES",
+    "document": "75776849000150",
     "documentType": "cnpj",
-    "riskLevel": "Alto",
-    "score": 65,
-    "situacaoCadastral": {
-      "situacao": "ATIVA",
-      "mensagem": "Cadastro ativo na Receita Federal",
-      "valido": true
-    },
+    "score": 1,
+    "riskLevel": "Baixo",
     "asgScore": {
-      "score": 65,
-      "riskLevel": "Alto",
-      "totalOcorrencias": 5,
+      "score": 1,
+      "riskLevel": "Baixo",
+      "totalOcorrencias": 1,
       "breakdown": [
-        {"fonte": "Embargos IBAMA", "score": 45, "peso": 0.5, "quantidadeOcorrencias": 2},
-        {"fonte": "Autos de Infracao IBAMA", "score": 38, "peso": 0.35, "quantidadeOcorrencias": 3}
+        {"fonte": "Embargos IBAMA",            "score": 3, "peso": 0.25, "quantidadeOcorrencias": 1},
+        {"fonte": "Autos de Infracao IBAMA",   "score": 0, "peso": 0.18, "quantidadeOcorrencias": 0},
+        {"fonte": "Embargos ICMBio",           "score": 0, "peso": 0.10, "quantidadeOcorrencias": 0},
+        {"fonte": "Autos de Infracao ICMBio",  "score": 0, "peso": 0.07, "quantidadeOcorrencias": 0},
+        {"fonte": "MTE - Lista Suja Trabalho Escravo", "score": 0, "peso": 0.20, "quantidadeOcorrencias": 0},
+        {"fonte": "CNEP - Empresas Punidas",   "score": 0, "peso": 0.08, "quantidadeOcorrencias": 0},
+        {"fonte": "CEIS - Empresas Inidoneas/Suspensas", "score": 0, "peso": 0.07, "quantidadeOcorrencias": 0},
+        {"fonte": "CEPIM - Entidades Impedidas", "score": 0, "peso": 0.05, "quantidadeOcorrencias": 0}
       ]
     },
-    "ocorrencias": {
-      "embargos": [...],
-      "autosInfracao": [...]
-    }
-  }
+    "ocorrencias": { "embargos": [...], "autosInfracao": [...] },
+    "situacaoCadastral": { "situacao": "ATIVA", "valido": true }
+  },
+  "sancoesAdmPublica": [],
+  "impedimentosCepim": [],
+  "trabalhoEscravo": [],
+  "icmbioAutos": [],
+  "icmbioEmbargos": []
 }
 ```
 
-**Exemplo de resposta (não encontrado):**
-```json
-{
-  "found": false
-}
-```
-
-**Exemplo de resposta (bloqueado por situação cadastral):**
+**Bloqueado por situação cadastral:**
 ```json
 {
   "found": false,
   "bloqueadoPorSituacaoCadastral": true,
-  "situacaoCadastral": {
-    "situacao": "BAIXADA",
-    "mensagem": "CNPJ com situacao 'BAIXADA' na Receita Federal. Analise ASG nao disponivel para empresas inativas.",
-    "valido": false
-  }
+  "situacaoCadastral": { "situacao": "BAIXADA", "valido": false }
 }
 ```
 
-#### Buscar por Nome
-
-```http
-GET /api/search/name?name={termo_busca}
+**Sem ocorrências:**
+```json
+{ "found": false }
 ```
 
-### Infraestrutura
+#### `GET /api/search/name?name={termo}`
 
-#### Google Cloud Platform
+Busca parcial por nome (case-insensitive `LIKE`). Atualmente busca apenas em IBAMA (Phase B/C apenas via documento).
 
-A aplicação é hospedada no **Google Cloud Run**, um serviço serverless para containers:
+#### `GET /q/swagger-ui`
 
-- **Build**: Cloud Build (CI/CD)
-- **Registry**: Google Container Registry
-- **Runtime**: Cloud Run (us-central1)
-- **Storage**: Cloud Storage (dados CSV)
+Swagger UI completo, habilitado em todos os perfis.
 
-#### Configurações de Deploy
+#### `GET /q/dev`
 
-| Configuração | Valor |
-|--------------|-------|
-| Memória | 1 GB |
-| CPU | 1 vCPU |
-| Min Instances | 0 (scale to zero) |
-| Max Instances | 10 |
-| Timeout | 300s (startup) |
-
-#### Pipeline CI/CD
-
-O arquivo `cloudbuild.yaml` define o pipeline:
-
-1. **Download CSV**: Baixa dados do IBAMA do Cloud Storage
-2. **Build**: Constrói imagem Docker multi-stage
-3. **Push**: Envia para Container Registry
-4. **Deploy**: Publica no Cloud Run
+Quarkus Dev UI (perfil `dev` apenas).
 
 ### Testes
 
-#### Testes de Contrato (Pact)
-
-O projeto utiliza **Pact** para garantir compatibilidade entre frontend e backend:
+171 testes unitários e de serviço (JUnit 5 + Mockito + Quarkus Test). Pact consumer/provider para contratos.
 
 ```bash
-# Gerar contratos (consumer)
-./mvnw -Dtest=*ConsumerPactTest test
-
-# Verificar contratos (provider)
+./mvnw test                                    # todos os testes
+./mvnw -Dtest=AsgScoreCalculatorTest test      # classe específica
+./mvnw -Dtest='*ConsumerPactTest' test         # gera pacts em target/pacts/
 ./mvnw -Dtest=ProviderPactVerificationTest test
 ```
 
-Contratos gerados em: `target/pacts/`
-
-#### Testes Unitários e Integração
-
-```bash
-# Executar todos os testes
-./mvnw test
-
-# Executar teste específico
-./mvnw -Dtest=SearchServiceTest test
-```
+Os pacts gerados em `target/pacts/` devem ser copiados para `src/test/resources/pacts/` para que o provider verifique-os no CI.
 
 ---
 
-## Desenvolvimento
+## Desenvolvimento local
 
 ### Pré-requisitos
 
-- Java 21+
-- Maven 3.9+
-- Docker (opcional)
+- **Java 21+**
+- **Maven 3.9+** (ou use o `./mvnw` wrapper)
+- **Docker** rodando — necessário para o **DevServices Quarkus** subir Postgres+PostGIS automaticamente em modo dev. Sem Docker, `quarkus:dev` falha por não conseguir conectar ao banco.
+- **Arquivos de dados** em `docs/`:
+  - `docs/ibama/areas_embargadas.csv` (versionado)
+  - `docs/ibama/autos/auto_infracao_ano_*.csv` (versionado, 1977-2025)
+  - `docs/adm_publica/*.csv`, `docs/icmbio/*.{xlsx,shp,dbf,prj}`, `docs/mte/tr_escravo.csv` — **não versionados** (download manual ou via cloudbuild)
 
-### Executando localmente
+### Subindo
 
 ```bash
-# Modo desenvolvimento com hot-reload
 ./mvnw quarkus:dev
 ```
 
-A aplicação estará disponível em:
-- **API**: http://localhost:8080
-- **Swagger UI**: http://localhost:8080/q/swagger-ui
-- **Dev UI**: http://localhost:8080/q/dev
+O DevServices puxa a imagem `postgis/postgis:16-3.4` (~600 MB no primeiro pull) e sobe um container Postgres dedicado. Flyway aplica V1-V10 e os 5 loaders carregam tudo em ~4 minutos no primeiro boot. Boots subsequentes (com o container preservado e marker presente) sobem em ~30s.
 
-### Docker
+URLs:
+- App: http://localhost:8080
+- Swagger: http://localhost:8080/q/swagger-ui
+- Dev UI: http://localhost:8080/q/dev
+
+### Testes
 
 ```bash
-# Build da imagem
-docker build -t ecotransparencia-api .
+./mvnw test
+```
 
-# Executar container
-docker run -i --rm -p 8080:8080 ecotransparencia-api
+Roda em H2 + H2GIS, sem Docker. As flags `app.data.load-*-on-startup` ficam `false` em `%test`, então a suite não tenta carregar CSVs.
+
+### Smoke local
+
+```bash
+# DELZI MACHADO ALVES (1 embargo IBAMA de 1987 — score baixo por decay temporal)
+curl -s 'http://localhost:8080/api/search/document?document=75776849000150&type=cnpj' | jq
+
+# CNPJ multi-source ICMBio
+curl -s 'http://localhost:8080/api/search/document?document=33050071000158&type=cnpj' | jq
+
+# Busca por nome
+curl -s 'http://localhost:8080/api/search/name?name=DELZI' | jq
+```
+
+### Properties relevantes (`application.properties`)
+
+```properties
+# Datasource (default = postgresql; %test = h2; %prod = env vars sem default)
+quarkus.datasource.db-kind=postgresql
+quarkus.flyway.migrate-at-start=true
+quarkus.datasource.devservices.image-name=postgis/postgis:16-3.4
+
+# %prod fail-fast: sem DB_URL/DB_USER/DB_PASSWORD a app não sobe
+%prod.quarkus.datasource.jdbc.url=${DB_URL}
+
+# Toggles de carga (todas false em default; ligadas em %dev e %prod)
+app.data.load-on-startup=false
+app.data.load-autos-on-startup=true
+app.data.load-sancao-adm-publica-on-startup=false
+app.data.load-cepim-on-startup=false
+app.data.load-trabalho-escravo-on-startup=false
+app.data.load-icmbio-on-startup=false
 ```
 
 ---
 
-## Deploy
+## Deploy (Google Cloud)
 
-### Ambiente de Produção
+A aplicação roda em **Cloud Run** (us-central1) com **Cloud SQL para PostgreSQL 16 + PostGIS** como banco gerenciado.
 
-**URL**: https://ecotransparencia-api-860516408210.us-central1.run.app
-
-### Testando a API
+### Provisionamento (one-time, humano-gated)
 
 ```bash
-# Consultar CNPJ
-curl -s "https://ecotransparencia-api-860516408210.us-central1.run.app/api/search/document?document=00000000000191&type=cnpj" | jq
+# Cloud SQL Postgres 16 + PostGIS
+gcloud sql instances create ecotransparencia-db \
+  --database-version=POSTGRES_16 \
+  --tier=db-custom-2-7680 \
+  --region=southamerica-east1 \
+  --database-flags=cloudsql.enable_pg_extensions=postgis
 
-# Consultar por nome
-curl -s "https://ecotransparencia-api-860516408210.us-central1.run.app/api/search/name?name=PREFEITURA" | jq
+gcloud sql databases create ecotransparencia --instance=ecotransparencia-db
+# Conectar e rodar: CREATE EXTENSION IF NOT EXISTS postgis;
 ```
+
+### Pipeline `cloudbuild.yaml`
+
+1. `gsutil cp gs://ecotransparencia2/...` → baixa CSVs/XLSX/SHP para `docs/`.
+2. `docker build` (multi-stage) com `COPY docs/* /deployments/data/`.
+3. `docker push` para Artifact Registry.
+4. `gcloud run deploy` com:
+   - `--add-cloudsql-instances=PROJECT:REGION:INSTANCE`
+   - `DB_URL`, `DB_USER`, `DB_PASSWORD` via Secret Manager
+   - `--memory=2Gi --timeout=900` no primeiro deploy (carga inicial)
+
+### Configurações de runtime
+
+| Setting | Valor |
+|---|---|
+| Memória | 2 GB (1º deploy) → 1 GB (steady state) |
+| CPU | 1 vCPU |
+| Min/Max instances | 0 / 10 |
+| Cloud Run timeout | 900s (1º deploy) → 300s |
+| `quarkus.startup-timeout` | 900s |
+
+URL atual: https://ecotransparencia-api-860516408210.us-central1.run.app
+
+---
+
+## Pendências e próximos passos
+
+- **Calibração de pesos e thresholds** (decisão de produto): atualmente o threshold "Baixo" vai até score 25 — pode ficar permissivo demais com a soma dos pesos = 1,00.
+- **Endpoints de mapa** com geometria do ICMBio (`GET /api/icmbio/embargos?bbox=...`).
+- **Refresh agendado** das fontes do Portal da Transparência (hoje é boot-only; refresh = redeploy).
+- **`ProviderPactVerificationTest`** ainda em H2 — quando contratos passarem a usar geometria ou Phase B/C, migrar para Testcontainers Postgres.
+- **Native image (`-Pnative`)**: GeoTools + POI usam reflection pesada; geração nativa quebra até produzir `reflect-config.json`. Cloud Run JVM continua funcional.
+
+---
+
+## Links úteis
+
+- [Portal IBAMA — Áreas Embargadas](https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php)
+- [Portal da Transparência — CEIS / CNEP / CEPIM](https://portaldatransparencia.gov.br/sancoes)
+- [MTE — Lista Suja](https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/inspecao-do-trabalho/areas-de-atuacao/cadastro_de_empregadores)
+- [ICMBio — Dados abertos](https://dadosabertos.icmbio.gov.br/)
+- [CNPJA API](https://cnpja.com/api/open)
+- [Quarkus](https://quarkus.io/guides/) · [Pact](https://docs.pact.io/) · [PostGIS](https://postgis.net/) · [GeoTools](https://geotools.org/)
 
 ---
 
 ## Licença
 
 Apache 2.0
-
----
-
-## Links Úteis
-
-- [Portal IBAMA - Áreas Embargadas](https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php)
-- [CNPJA API Documentation](https://cnpja.com/api/open)
-- [Quarkus Documentation](https://quarkus.io/guides/)
-- [Pact Documentation](https://docs.pact.io/)

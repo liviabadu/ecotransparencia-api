@@ -43,3 +43,24 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 # TLS Certificates
 .certs/
+
+# -----------------------------------------------------------------------------
+# Firebase / Firebase Data Connect (local development; nao versionar)
+# -----------------------------------------------------------------------------
+.firebase/
+.firebaserc
+firebase.json
+firebase-debug.log
+dataconnect/
+dataconnect-debug.log
+pglite-debug.log
+
+# -----------------------------------------------------------------------------
+# Data source files (baixados do GCS via cloudbuild; nao versionar - sao
+# grandes e atualizam em cadencia propria). Os autos IBAMA por ano (1977-2025)
+# ja estao versionados; o 2026 e as fontes novas (Fase B/C) ficam por download.
+# -----------------------------------------------------------------------------
+/docs/adm_publica/
+/docs/icmbio/
+/docs/mte/
+/docs/ibama/autos/auto_infracao_ano_2026.csv
