@@ -43,6 +43,18 @@ public enum FonteDados {
     MTE_TRABALHO_ESCRAVO("MTE - Lista Suja Trabalho Escravo", "MTE", 0.10),
 
     /**
+     * Autos de infracao do ICMBio.
+     * Peso: 0.10 (provisorio, ajustar com input do produto - Fase C)
+     */
+    ICMBIO_AUTO("Autos de Infracao ICMBio", "ICMBio", 0.10),
+
+    /**
+     * Embargos do ICMBio.
+     * Peso: 0.15 (provisorio, ajustar com input do produto - Fase C)
+     */
+    ICMBIO_EMBARGO("Embargos ICMBio", "ICMBio", 0.15),
+
+    /**
      * Reservado para futuras fontes de dados.
      * Peso: 0.15 (15% do score total)
      */

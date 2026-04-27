@@ -30,6 +30,12 @@ public class SearchResponse {
     @Schema(description = "Inclusoes na Lista Suja do MTE associadas - Fase B")
     private List<TrabalhoEscravoOccurrence> trabalhoEscravo;
 
+    @Schema(description = "Autos de infracao do ICMBio - Fase C")
+    private List<IcmbioAutoOccurrence> icmbioAutos;
+
+    @Schema(description = "Embargos do ICMBio - Fase C")
+    private List<IcmbioEmbargoOccurrence> icmbioEmbargos;
+
     public SearchResponse() {
     }
 
@@ -115,5 +121,21 @@ public class SearchResponse {
 
     public void setTrabalhoEscravo(List<TrabalhoEscravoOccurrence> trabalhoEscravo) {
         this.trabalhoEscravo = trabalhoEscravo;
+    }
+
+    public List<IcmbioAutoOccurrence> getIcmbioAutos() {
+        return icmbioAutos;
+    }
+
+    public void setIcmbioAutos(List<IcmbioAutoOccurrence> icmbioAutos) {
+        this.icmbioAutos = icmbioAutos;
+    }
+
+    public List<IcmbioEmbargoOccurrence> getIcmbioEmbargos() {
+        return icmbioEmbargos;
+    }
+
+    public void setIcmbioEmbargos(List<IcmbioEmbargoOccurrence> icmbioEmbargos) {
+        this.icmbioEmbargos = icmbioEmbargos;
     }
 }
