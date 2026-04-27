@@ -84,7 +84,7 @@ public class SearchService {
 
         SearchResponse response;
         if (!embargos.isEmpty() || !autosInfracao.isEmpty()) {
-            EntityDto entity = buildEntityDto(embargos, autosInfracao, document, type);
+            EntityDto entity = buildEntityDto(embargos, autosInfracao, sancoes, cepim, mte, document, type);
             response = SearchResponse.found(entity);
         } else {
             // Apenas ocorrencias Fase B; nao ha EntityDto agregado por enquanto.
@@ -150,6 +150,18 @@ public class SearchService {
 
     private EntityDto buildEntityDto(List<Embargo> embargos, List<AutoInfracao> autosInfracao,
                                      String document, String type) {
+        return buildEntityDto(embargos, autosInfracao,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                document, type);
+    }
+
+    private EntityDto buildEntityDto(List<Embargo> embargos, List<AutoInfracao> autosInfracao,
+                                     List<SancaoAdmPublica> sancoes,
+                                     List<Cepim> cepimList,
+                                     List<TrabalhoEscravoMte> mteList,
+                                     String document, String type) {
         EntityDto entity = new EntityDto();
 
         // Define ID e nome do primeiro registro encontrado
@@ -171,8 +183,8 @@ public class SearchService {
             entity.setSituacaoCadastral(receitaFederalService.consultar(document));
         }
 
-        // Calcula Score ASG
-        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao);
+        // Calcula Score ASG (inclui Fase B: CEIS/CNEP/CEPIM/MTE)
+        AsgScoreDto asgScore = asgScoreCalculator.calculate(embargos, autosInfracao, sancoes, cepimList, mteList);
         entity.setAsgScore(asgScore);
         entity.setScore(asgScore.getScore());
         entity.setRiskLevel(asgScore.getRiskLevel());

@@ -1,9 +1,13 @@
 package br.com.ecotransparencia.service;
 
+import br.com.ecotransparencia.domain.CadastroSancao;
 import br.com.ecotransparencia.dto.AsgScoreDto;
 import br.com.ecotransparencia.dto.ScoreComponentDto;
 import br.com.ecotransparencia.entity.AutoInfracao;
+import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.SancaoAdmPublica;
+import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -371,5 +375,84 @@ class AsgScoreCalculatorTest {
         auto.setCpfCnpjInfrator("12345678000100");
         auto.setSituacaoCancelado("N");
         return auto;
+    }
+
+    @Nested
+    @DisplayName("Fase B: novas fontes (CEIS/CNEP/CEPIM/MTE)")
+    class FaseBScoreTests {
+
+        @Test
+        @DisplayName("Score generico de sancoes: 10 pontos por ocorrencia, capped em 100")
+        void shouldComputeSancaoScore() {
+            assertEquals(0, calculator.calculateSancaoScore(0));
+            assertEquals(10, calculator.calculateSancaoScore(1));
+            assertEquals(50, calculator.calculateSancaoScore(5));
+            assertEquals(100, calculator.calculateSancaoScore(15)); // cap
+        }
+
+        @Test
+        @DisplayName("Score MTE: 15 pontos base + 1 por trabalhador envolvido")
+        void shouldComputeMteScore() {
+            TrabalhoEscravoMte t = new TrabalhoEscravoMte();
+            t.setTrabalhadoresEnvolvidos(3);
+            assertEquals(18, calculator.calculateMteScore(List.of(t)));
+
+            TrabalhoEscravoMte t2 = new TrabalhoEscravoMte();
+            t2.setTrabalhadoresEnvolvidos(null);
+            assertEquals(15, calculator.calculateMteScore(List.of(t2)));
+
+            assertEquals(0, calculator.calculateMteScore(Collections.emptyList()));
+        }
+
+        @Test
+        @DisplayName("calculate de 5 args inclui todas as fontes no breakdown")
+        void shouldIncludeAllPhaseBSourcesInBreakdown() {
+            SancaoAdmPublica ceis = new SancaoAdmPublica();
+            ceis.setCadastro(CadastroSancao.CEIS);
+            SancaoAdmPublica cnep = new SancaoAdmPublica();
+            cnep.setCadastro(CadastroSancao.CNEP);
+            Cepim cep = new Cepim();
+            TrabalhoEscravoMte mte = new TrabalhoEscravoMte();
+            mte.setTrabalhadoresEnvolvidos(2);
+
+            AsgScoreDto asg = calculator.calculate(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    List.of(ceis, cnep),
+                    List.of(cep),
+                    List.of(mte));
+
+            // Breakdown deve ter 6 fontes: EMBARGO, AUTO_INFRACAO, CEIS, CNEP, CEPIM, MTE
+            assertEquals(6, asg.getBreakdown().size());
+            assertEquals(4, asg.getTotalOcorrencias()); // 2 sancoes + 1 cepim + 1 mte
+        }
+
+        @Test
+        @DisplayName("calculate de 5 args sem ocorrencias retorna score 0")
+        void shouldReturnZeroWhenNoOccurrencesAtAll() {
+            AsgScoreDto asg = calculator.calculate(
+                    Collections.emptyList(), Collections.emptyList(),
+                    Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+            assertEquals(0, asg.getScore());
+            assertEquals("Baixo", asg.getRiskLevel());
+            assertEquals(0, asg.getTotalOcorrencias());
+            assertEquals(6, asg.getBreakdown().size());
+        }
+
+        @Test
+        @DisplayName("calculate de 2 args preserva comportamento original (apenas IBAMA no breakdown)")
+        void shouldPreserveOriginalBehaviorWith2ArgOverload() {
+            Embargo embargo = createBasicEmbargo();
+            embargo.setSitDesmatamento("D"); // 25 pontos
+
+            AsgScoreDto asgOld = calculator.calculate(List.of(embargo), Collections.emptyList());
+
+            // Score identico ao teste original (apenas IBAMA no breakdown)
+            assertEquals(15, asgOld.getScore());
+            assertEquals("Baixo", asgOld.getRiskLevel());
+            assertEquals(1, asgOld.getTotalOcorrencias());
+            assertEquals(2, asgOld.getBreakdown().size());
+        }
     }
 }
