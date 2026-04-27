@@ -1,6 +1,14 @@
-# EcoTransparencia API
+# 🌱 EcoTransparencia API
+
+![Java](https://img.shields.io/badge/Java-21_LTS-007396?logo=openjdk&logoColor=white)
+![Quarkus](https://img.shields.io/badge/Quarkus-3.30.2-4695EB?logo=quarkus&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_+_PostGIS-336791?logo=postgresql&logoColor=white)
+![Cloud Run](https://img.shields.io/badge/Cloud_Run-deployed-4285F4?logo=googlecloud&logoColor=white)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
 API REST para análise de risco ASG (Ambiental, Social, Governança) de pessoas físicas e jurídicas a partir de **fontes públicas brasileiras**: IBAMA, ICMBio, CEIS/CNEP/CEPIM (Portal da Transparência) e a Lista Suja do Trabalho Escravo do MTE. Consultando por CPF ou CNPJ, a API agrega ocorrências das 7 fontes, calcula um Score ASG calibrado e devolve um diagnóstico unificado.
+
+> 💡 **Em uma frase:** consulte um CPF/CNPJ e receba uma nota de risco ASG de 0 a 100, agregando 8 bases públicas (IBAMA, ICMBio, CEIS, CNEP, CEPIM, MTE) com decay temporal e validação na Receita Federal.
 
 ## Sumário
 
@@ -33,6 +41,71 @@ Casos de uso típicos:
 - **Compliance de crédito**: enriquecer a análise de risco com sinais ambientais e de governança que não aparecem em birôs tradicionais.
 - **Due diligence M&A**: histórico ambiental + sanções administrativas em um único endpoint.
 
+#### Visão geral do ecossistema
+
+```mermaid
+flowchart LR
+    subgraph Consumidores["👥 Consumidores"]
+        WEB[Frontend Web]
+        APIS[APIs de Compliance/ESG]
+    end
+
+    subgraph Core["☁️ EcoTransparencia API · Cloud Run"]
+        REST["REST · SearchResource"]
+        SVC["SearchService<br/>+ AsgScoreCalculator"]
+        DB[("PostgreSQL 16<br/>+ PostGIS<br/>(Cloud SQL)")]
+    end
+
+    subgraph FontesE["🌳 Fontes Ambientais (E)"]
+        IBE[IBAMA Embargos]
+        IBA[IBAMA Autos]
+        ICE[ICMBio Embargos]
+        ICA[ICMBio Autos]
+    end
+
+    subgraph FontesS["🤝 Fontes Sociais (S)"]
+        MTE[MTE Lista Suja]
+    end
+
+    subgraph FontesG["🏛️ Fontes Governança (G)"]
+        CNEP[CNEP]
+        CEIS[CEIS]
+        CEPIM[CEPIM]
+    end
+
+    subgraph Externo["🌐 Validação externa"]
+        CNPJA[CNPJA API<br/>Receita Federal]
+    end
+
+    WEB --> REST
+    APIS --> REST
+    REST --> SVC
+    SVC --> DB
+    SVC -->|Validação CNPJ| CNPJA
+
+    IBE -.->|CSV boot| DB
+    IBA -.->|CSV boot| DB
+    ICE -.->|XLSX + SHP| DB
+    ICA -.->|XLSX + SHP| DB
+    MTE -.->|CSV boot| DB
+    CNEP -.->|CSV boot| DB
+    CEIS -.->|CSV boot| DB
+    CEPIM -.->|CSV boot| DB
+
+    classDef core fill:#10b981,stroke:#047857,color:#fff
+    classDef e fill:#16a34a,stroke:#14532d,color:#fff
+    classDef s fill:#0284c7,stroke:#0c4a6e,color:#fff
+    classDef g fill:#9333ea,stroke:#581c87,color:#fff
+    classDef ext fill:#f59e0b,stroke:#b45309,color:#fff
+    classDef cli fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    class REST,SVC,DB core
+    class IBE,IBA,ICE,ICA e
+    class MTE s
+    class CNEP,CEIS,CEPIM g
+    class CNPJA ext
+    class WEB,APIS cli
+```
+
 ### Fontes de dados
 
 | Fonte | Origem | Bloco ESG | Volume típico | Modo de carga |
@@ -64,6 +137,54 @@ O score é uma **média ponderada** que considera as 8 fontes (IBAMA Embargos, I
 | CEPIM | G | 0,05 |
 | **Total** | | **1,00** |
 
+#### Composição ESG do Score (60/20/20)
+
+```mermaid
+pie showData
+    title Distribuição de pesos por bloco ESG
+    "E · IBAMA Embargos (0,25)" : 25
+    "E · IBAMA Autos (0,18)" : 18
+    "E · ICMBio Embargos (0,10)" : 10
+    "E · ICMBio Autos (0,07)" : 7
+    "S · MTE Trabalho Escravo (0,20)" : 20
+    "G · CNEP (0,08)" : 8
+    "G · CEIS (0,07)" : 7
+    "G · CEPIM (0,05)" : 5
+```
+
+#### Pipeline de cálculo do Score ASG
+
+```mermaid
+flowchart LR
+    DOC([CPF / CNPJ]) --> COL[Coleta paralela<br/>nas 8 fontes]
+    COL --> E1[/IBAMA Embargos/]
+    COL --> E2[/IBAMA Autos/]
+    COL --> E3[/ICMBio Embargos/]
+    COL --> E4[/ICMBio Autos/]
+    COL --> S1[/MTE/]
+    COL --> G1[/CNEP/]
+    COL --> G2[/CEIS/]
+    COL --> G3[/CEPIM/]
+
+    E1 & E2 & E3 & E4 --> RULES["Regras por fonte<br/>+ decay temporal<br/>+ esfera/trânsito julgado<br/>+ bioma sensível"]
+    S1 --> RULES
+    G1 & G2 & G3 --> RULES
+
+    RULES --> WEIGHT["Média ponderada<br/>(pesos somam 1,00)"]
+    WEIGHT --> FINAL["Score Final 0–100"]
+    FINAL --> CLASS{Classificação}
+
+    CLASS -->|0–25| BAIXO[🟢 Baixo]
+    CLASS -->|26–50| MEDIO[🟡 Médio]
+    CLASS -->|51–79| ALTO[🟠 Alto]
+    CLASS -->|80–100| CRITICO[🔴 Crítico]
+
+    classDef src fill:#0ea5e9,stroke:#0369a1,color:#fff
+    classDef calc fill:#8b5cf6,stroke:#5b21b6,color:#fff
+    class E1,E2,E3,E4,S1,G1,G2,G3 src
+    class RULES,WEIGHT,FINAL calc
+```
+
 **Critérios calibrados (2026-04):**
 
 - **Categoria de sanção (CEIS/CNEP)**: inidoneidade=25 · impedimento/proibição=12 · suspensão=10 · multa/publicação=8 · demais=6.
@@ -84,6 +205,20 @@ O score é uma **média ponderada** que considera as 8 fontes (IBAMA Embargos, I
 | 51-79 | Alto |
 | 80-100 | Crítico |
 
+```mermaid
+flowchart LR
+    B["🟢 BAIXO<br/>0 – 25"] --> M["🟡 MÉDIO<br/>26 – 50"] --> A["🟠 ALTO<br/>51 – 79"] --> C["🔴 CRÍTICO<br/>80 – 100"]
+
+    classDef baixo fill:#22c55e,stroke:#15803d,color:#fff,stroke-width:2px
+    classDef medio fill:#eab308,stroke:#a16207,color:#000,stroke-width:2px
+    classDef alto fill:#f97316,stroke:#c2410c,color:#fff,stroke-width:2px
+    classDef critico fill:#ef4444,stroke:#991b1b,color:#fff,stroke-width:2px
+    class B baixo
+    class M medio
+    class A alto
+    class C critico
+```
+
 > Os pesos e critérios estão documentados in-line nos `@TODO` do `AsgScoreCalculator` e em `FonteDados.java`. Calibrações futuras (de produto) devem atualizar tanto a fórmula quanto os testes em `AsgScoreCalculatorTest`.
 
 ### Validação de situação cadastral (CNPJ)
@@ -94,6 +229,23 @@ Antes da análise ASG, todo CNPJ é validado contra a Receita Federal via [CNPJA
 - **BAIXADA / SUSPENSA / INAPTA / INDISPONÍVEL** → bloqueia a análise; resposta contém `bloqueadoPorSituacaoCadastral: true` e a `situacaoCadastral`.
 
 O bean `ReceitaFederalServiceStub` (default em dev/test) sempre retorna ATIVA. O bean real (`ReceitaFederalServiceImpl`) é ativado em build com `-Decotransparencia.receita-federal.use-real-api=true` (ligado em `%prod`).
+
+```mermaid
+stateDiagram-v2
+    [*] --> ConsultaCNPJ
+    ConsultaCNPJ --> ChamaCNPJA: GET /office/{cnpj}
+    ChamaCNPJA --> AvaliaSituacao
+
+    AvaliaSituacao --> Ativa: ATIVA
+    AvaliaSituacao --> Bloqueada: BAIXADA · SUSPENSA<br/>INAPTA · INDISPONÍVEL
+
+    Ativa --> AnaliseASG: prossegue
+    AnaliseASG --> RespondeScore: score + breakdown
+    RespondeScore --> [*]
+
+    Bloqueada --> RespondeBloqueio: bloqueadoPorSituacaoCadastral=true
+    RespondeBloqueio --> [*]
+```
 
 ---
 
@@ -119,6 +271,74 @@ O bean `ReceitaFederalServiceStub` (default em dev/test) sempre retorna ATIVA. O
 | Testes | JUnit 5, Mockito, REST Assured, Pact (consumer + provider) | — |
 
 ### Arquitetura
+
+#### Camadas e dependências
+
+```mermaid
+flowchart TB
+    subgraph L1["🎯 Apresentação · resource/"]
+        REST[SearchResource]
+    end
+
+    subgraph L2["⚙️ Serviços · service/"]
+        SS[SearchService<br/>orquestra 7 fontes]
+        ASG[AsgScoreCalculator<br/>score calibrado]
+        RF[ReceitaFederalService<br/>Impl + Stub]
+    end
+
+    subgraph L3["📦 Domínio · domain/ + dto/"]
+        FONTE[FonteDados · CadastroSancao]
+        DTOS["EntityDto · SearchResponse<br/>AsgScoreDto · ScoreComponentDto<br/>5 *Occurrence DTOs"]
+    end
+
+    subgraph L4["🗄️ Persistência · repository/ + entity/"]
+        REPOS["8 Panache Repositories"]
+        ENT["8 Entities (PostGIS-aware)<br/>+ DataLoadMarker"]
+        DB[("PostgreSQL 16 + PostGIS<br/>Flyway V1–V10")]
+    end
+
+    subgraph L5["🌐 Integração · client/"]
+        CLIENT[CnpjaApiClient]
+    end
+
+    subgraph L6["🚀 Bootstrap · startup/"]
+        LOADERS["5 Loaders<br/>IBAMA · ICMBio · Sanção · CEPIM · MTE"]
+    end
+
+    subgraph L7["🛠️ Util · util/"]
+        UTILS["DocumentoUtil · CsvParserBuilder<br/>XlsxStreamReader · ShapefileGeometryReader<br/>LatestCsvByPattern"]
+    end
+
+    REST --> SS
+    SS --> ASG
+    SS --> RF
+    SS --> REPOS
+    RF --> CLIENT
+    CLIENT -.->|HTTPS| EXT[(CNPJA API)]
+    REPOS --> ENT
+    ENT --> DB
+    LOADERS ==>|carga + marker| DB
+    LOADERS --> UTILS
+    ASG --> FONTE
+    SS --> DTOS
+
+    classDef present fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    classDef svc fill:#8b5cf6,stroke:#6d28d9,color:#fff
+    classDef dom fill:#06b6d4,stroke:#0e7490,color:#fff
+    classDef pers fill:#10b981,stroke:#047857,color:#fff
+    classDef integ fill:#f59e0b,stroke:#b45309,color:#fff
+    classDef boot fill:#ef4444,stroke:#991b1b,color:#fff
+    classDef util fill:#64748b,stroke:#1e293b,color:#fff
+    class REST present
+    class SS,ASG,RF svc
+    class FONTE,DTOS dom
+    class REPOS,ENT,DB pers
+    class CLIENT,EXT integ
+    class LOADERS boot
+    class UTILS util
+```
+
+#### Estrutura de diretórios
 
 ```
 src/main/java/br/com/ecotransparencia/
@@ -178,6 +398,76 @@ Schema gerenciado **exclusivamente por Flyway** — Hibernate `database.generati
 
 **Em testes** (`%test`), Flyway é desabilitado e Hibernate gera o schema via `drop-and-create`. H2GIS é carregado via `INIT=...CALL H2GIS_SPATIAL()` na URL JDBC para suportar tipos `geometry`.
 
+#### Modelo de dados
+
+```mermaid
+erDiagram
+    ENTIDADE ||--o{ EMBARGO : "IBAMA"
+    ENTIDADE ||--o{ AUTO_INFRACAO : "IBAMA"
+    ENTIDADE ||--o{ ICMBIO_EMBARGO : "ICMBio"
+    ENTIDADE ||--o{ ICMBIO_AUTO_INFRACAO : "ICMBio"
+    ENTIDADE ||--o{ SANCAO_ADM_PUBLICA : "CEIS+CNEP"
+    ENTIDADE ||--o{ CEPIM : "CEPIM"
+    ENTIDADE ||--o{ TRABALHO_ESCRAVO_MTE : "MTE"
+
+    DATA_LOAD_MARKER {
+        string fonte PK "ibama_embargo, icmbio_auto_v1, ..."
+        timestamp loaded_at
+        long records_loaded
+    }
+
+    ENTIDADE {
+        string documento PK "CPF/CNPJ"
+        string nome
+        string tipo "PF/PJ"
+    }
+    EMBARGO {
+        long seq_tad PK
+        date dat_embargo
+        double qtd_area_embargada
+        string sit_desmatamento
+        string des_tipo_bioma
+        string situacao "ATIVO/BAIXADO"
+    }
+    AUTO_INFRACAO {
+        long seq_auto_infracao PK
+        decimal val_auto_infracao
+        string gravidade_infracao
+        boolean conduta_dolosa
+    }
+    ICMBIO_EMBARGO {
+        string num_emb PK
+        geometry geometria "Polygon EPSG:4674"
+        string uc_nome
+        string uc_categoria
+    }
+    ICMBIO_AUTO_INFRACAO {
+        string num_auto PK
+        geometry geometria "Point EPSG:4674"
+        string uc_categoria
+        decimal valor_multa
+    }
+    SANCAO_ADM_PUBLICA {
+        long id PK
+        string tipo_cadastro "CEIS/CNEP discriminator"
+        string categoria_sancao
+        string esfera "federal/estadual/municipal"
+        boolean transito_julgado
+        date data_inicio
+    }
+    CEPIM {
+        long id PK
+        string motivo
+        date data_inicio
+    }
+    TRABALHO_ESCRAVO_MTE {
+        long id PK
+        string decisao_administrativa
+        int trabalhadores_envolvidos
+        date data_publicacao
+    }
+```
+
 ### Carga inicial e idempotência
 
 A primeira inicialização carrega os ~852k registros das 7 fontes em **~4 minutos**. A tabela `data_load_marker` registra cada fonte carregada (ex.: `ibama_embargo`, `icmbio_auto_v1`, `sancao_adm_publica_v1`); boots subsequentes saltam fontes já marcadas (~30s).
@@ -193,11 +483,69 @@ Os arquivos de origem ficam em `docs/<fonte>/` em desenvolvimento; em produção
 
 **ICMBio** usa estratégia híbrida: atributos vêm do XLSX via Apache POI streaming (40k+ linhas sem carregar em memória); geometria vem do `.shp` via GeoTools, joined por `vw_num_auto`/`vw_num_emb`. Linhas sem geometria correspondente são persistidas com `geometria=null` e contadas no log.
 
+```mermaid
+flowchart TD
+    BOOT([StartupEvent]) --> CHECK{marker existe<br/>em data_load_marker?}
+    CHECK -->|Sim| SKIP[⏭️ Skip ~30s]
+    CHECK -->|Não| READ[📥 Lê fonte<br/>CSV / XLSX+SHP]
+    READ --> DEDUPE[🧹 Dedupe em memória<br/>por chave natural]
+    DEDUPE --> BATCH[💾 Persist em batches<br/>500–1000 reg]
+    BATCH --> MARK[✅ Insere marker<br/>no commit final]
+    MARK --> READY([App pronta])
+    SKIP --> READY
+
+    classDef ok fill:#22c55e,stroke:#15803d,color:#fff
+    classDef step fill:#3b82f6,stroke:#1d4ed8,color:#fff
+    class READ,DEDUPE,BATCH,MARK step
+    class READY,SKIP ok
+```
+
 ### Endpoints
 
 #### `GET /api/search/document?document={doc}&type={cpf|cnpj}`
 
 Busca agregada nas 7 fontes. Para CNPJ, valida situação cadastral antes.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Cliente
+    participant API as SearchResource
+    participant SS as SearchService
+    participant RF as ReceitaFederalService
+    participant CNPJA as CNPJA API
+    participant REPOS as 8× Repositories
+    participant CALC as AsgScoreCalculator
+
+    C->>API: GET /api/search/document?document=X&type=cnpj
+    API->>SS: searchByDocument(doc, tipo)
+
+    alt tipo == cnpj
+        SS->>RF: consultarSituacao(cnpj)
+        RF->>CNPJA: GET /office/{cnpj}
+        CNPJA-->>RF: { status: "ATIVA" }
+        RF-->>SS: SituacaoCadastralDto
+        opt situação ≠ ATIVA
+            SS-->>API: { bloqueadoPorSituacaoCadastral: true }
+            API-->>C: 200 OK (bloqueado)
+        end
+    end
+
+    par Coleta paralela em todas as fontes
+        SS->>REPOS: findByDocumento(IBAMA Embargos)
+        SS->>REPOS: findByDocumento(IBAMA Autos)
+        SS->>REPOS: findByDocumento(ICMBio Embargos + Autos)
+        SS->>REPOS: findByDocumento(CEIS + CNEP)
+        SS->>REPOS: findByDocumento(CEPIM)
+        SS->>REPOS: findByDocumento(MTE)
+    end
+    REPOS-->>SS: Listas de ocorrências
+
+    SS->>CALC: calculate(ocorrências das 8 fontes)
+    CALC-->>SS: AsgScoreDto (score + breakdown por fonte)
+    SS-->>API: SearchResponse (entity + 5 listas)
+    API-->>C: 200 OK
+```
 
 **Resposta com ocorrências:**
 ```json
@@ -372,6 +720,28 @@ gcloud sql databases create ecotransparencia --instance=ecotransparencia-db
    - `--add-cloudsql-instances=PROJECT:REGION:INSTANCE`
    - `DB_URL`, `DB_USER`, `DB_PASSWORD` via Secret Manager
    - `--memory=2Gi --timeout=900` no primeiro deploy (carga inicial)
+
+```mermaid
+flowchart LR
+    DEV([👨‍💻 Dev]) -->|git push| GIT[(GitHub)]
+    GIT -->|trigger| CB{Cloud Build}
+
+    CB --> S1["📥 gsutil cp<br/>GCS bucket → docs/"]
+    S1 --> S2["🔨 docker build<br/>multi-stage"]
+    S2 --> S3["📦 docker push<br/>Artifact Registry"]
+    S3 --> S4["🚀 gcloud run deploy<br/>--add-cloudsql-instances"]
+
+    S4 --> RUN[(☁️ Cloud Run<br/>us-central1)]
+    RUN <-->|JDBC| SQL[(☁️ Cloud SQL<br/>Postgres 16 + PostGIS)]
+    SECRET[🔐 Secret Manager<br/>DB_URL · DB_USER · DB_PASSWORD] --> RUN
+
+    classDef step fill:#4285F4,stroke:#1a56db,color:#fff
+    classDef infra fill:#34A853,stroke:#1e7e34,color:#fff
+    classDef sec fill:#fbbc04,stroke:#b45309,color:#000
+    class S1,S2,S3,S4 step
+    class GIT,CB,RUN,SQL infra
+    class SECRET sec
+```
 
 ### Configurações de runtime
 
