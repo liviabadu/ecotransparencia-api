@@ -6,6 +6,8 @@ import br.com.ecotransparencia.dto.ScoreComponentDto;
 import br.com.ecotransparencia.entity.AutoInfracao;
 import br.com.ecotransparencia.entity.Cepim;
 import br.com.ecotransparencia.entity.Embargo;
+import br.com.ecotransparencia.entity.IcmbioAutoInfracao;
+import br.com.ecotransparencia.entity.IcmbioEmbargo;
 import br.com.ecotransparencia.entity.SancaoAdmPublica;
 import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -80,6 +82,24 @@ public class AsgScoreCalculator {
                                  List<SancaoAdmPublica> sancoes,
                                  List<Cepim> cepim,
                                  List<TrabalhoEscravoMte> mte) {
+        return calculate(embargos, autosInfracao, sancoes, cepim, mte,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList());
+    }
+
+    /**
+     * Calcula o Score ASG agregando IBAMA + Fase B + Fase C (ICMBio).
+     *
+     * <p>TODO: pesos das fontes Fase C (ICMBIO_AUTO=0.10, ICMBIO_EMBARGO=0.15)
+     * sao provisorios e devem ser ajustados com input do produto.
+     */
+    public AsgScoreDto calculate(List<Embargo> embargos,
+                                 List<AutoInfracao> autosInfracao,
+                                 List<SancaoAdmPublica> sancoes,
+                                 List<Cepim> cepim,
+                                 List<TrabalhoEscravoMte> mte,
+                                 List<IcmbioAutoInfracao> icmbioAutos,
+                                 List<IcmbioEmbargo> icmbioEmbargos) {
         List<ScoreComponentDto> breakdown = new ArrayList<>();
 
         int embargoScore = calculateEmbargoScore(embargos);
@@ -117,9 +137,22 @@ public class AsgScoreCalculator {
                 FonteDados.MTE_TRABALHO_ESCRAVO.getDescricao(), mteScore,
                 FonteDados.MTE_TRABALHO_ESCRAVO.getPeso(), mte.size()));
 
+        // Fase C: ICMBio. Reusa criterios genericos de sancao por enquanto
+        // (TODO: ajustar com input do produto - pesos provisorios em FonteDados).
+        int icmbioAutoScore = calculateIcmbioAutoScore(icmbioAutos);
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.ICMBIO_AUTO.getDescricao(), icmbioAutoScore,
+                FonteDados.ICMBIO_AUTO.getPeso(), icmbioAutos.size()));
+
+        int icmbioEmbargoScore = calculateSancaoScore(icmbioEmbargos.size());
+        breakdown.add(new ScoreComponentDto(
+                FonteDados.ICMBIO_EMBARGO.getDescricao(), icmbioEmbargoScore,
+                FonteDados.ICMBIO_EMBARGO.getPeso(), icmbioEmbargos.size()));
+
         int finalScore = calculateWeightedScoreAll(breakdown);
         int totalOcorrencias = embargos.size() + autosInfracao.size()
-                + sancoes.size() + cepim.size() + mte.size();
+                + sancoes.size() + cepim.size() + mte.size()
+                + icmbioAutos.size() + icmbioEmbargos.size();
 
         AsgScoreDto asgScore = new AsgScoreDto();
         asgScore.setScore(finalScore);
@@ -139,6 +172,21 @@ public class AsgScoreCalculator {
      */
     int calculateSancaoScore(int count) {
         return Math.min(count * 10, 100);
+    }
+
+    /**
+     * Score para autos de infracao do ICMBio.
+     *
+     * <p>TODO: criterio provisorio - 12 pontos por auto + bonus por valor da
+     * multa similar ao calculo do IBAMA. Ajustar com input do produto.
+     */
+    int calculateIcmbioAutoScore(List<IcmbioAutoInfracao> autos) {
+        int score = 0;
+        for (IcmbioAutoInfracao a : autos) {
+            score += 12;
+            score += calculateMultaPoints(a.getValorMulta());
+        }
+        return Math.min(score, 100);
     }
 
     /**
