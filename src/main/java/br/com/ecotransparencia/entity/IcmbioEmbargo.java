@@ -30,7 +30,7 @@ public class IcmbioEmbargo {
     @Column(name = "vw_num_emb")
     private Integer vwNumEmb;
 
-    @Column(name = "numero_emb")
+    @Column(name = "numero_emb", columnDefinition = "TEXT")
     private String numeroEmb;
 
     @Column(name = "serie", length = 50)
@@ -39,7 +39,7 @@ public class IcmbioEmbargo {
     @Column(name = "origem", length = 50)
     private String origem;
 
-    @Column(name = "numero_ai")
+    @Column(name = "numero_ai", columnDefinition = "TEXT")
     private String numeroAi;
 
     @Column(name = "cpf_cnpj", length = 20)
@@ -48,7 +48,7 @@ public class IcmbioEmbargo {
     @Column(name = "cpf_cnpj_formatado", length = 30)
     private String cpfCnpjFormatado;
 
-    @Column(name = "autuado", length = 500)
+    @Column(name = "autuado", columnDefinition = "TEXT")
     private String autuado;
 
     @Column(name = "desc_infra", columnDefinition = "TEXT")
@@ -63,19 +63,19 @@ public class IcmbioEmbargo {
     @Column(name = "artigo_2", length = 100)
     private String artigo2;
 
-    @Column(name = "tipo_infra")
+    @Column(name = "tipo_infra", columnDefinition = "TEXT")
     private String tipoInfra;
 
-    @Column(name = "nome_uc")
+    @Column(name = "nome_uc", columnDefinition = "TEXT")
     private String nomeUc;
 
     @Column(name = "cnuc", length = 50)
     private String cnuc;
 
-    @Column(name = "municipio")
+    @Column(name = "municipio", columnDefinition = "TEXT")
     private String municipio;
 
-    @Column(name = "uf", length = 2)
+    @Column(name = "uf", length = 8)
     private String uf;
 
     @Column(name = "data")
@@ -87,13 +87,13 @@ public class IcmbioEmbargo {
     @Column(name = "obs", columnDefinition = "TEXT")
     private String obs;
 
-    @Column(name = "julgamento")
+    @Column(name = "julgamento", columnDefinition = "TEXT")
     private String julgamento;
 
     @Column(name = "area", precision = 18, scale = 4)
     private BigDecimal area;
 
-    @Column(name = "processo")
+    @Column(name = "processo", columnDefinition = "TEXT")
     private String processo;
 
     /** Geometria do embargo (poligono). EPSG:4674. Nao exposto em DTOs. */

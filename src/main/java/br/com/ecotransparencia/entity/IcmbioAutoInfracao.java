@@ -30,7 +30,7 @@ public class IcmbioAutoInfracao {
     @Column(name = "vw_num_auto")
     private Integer vwNumAuto;
 
-    @Column(name = "numero_ai")
+    @Column(name = "numero_ai", columnDefinition = "TEXT")
     private String numeroAi;
 
     @Column(name = "serie", length = 50)
@@ -39,7 +39,7 @@ public class IcmbioAutoInfracao {
     @Column(name = "origem", length = 50)
     private String origem;
 
-    @Column(name = "tipo")
+    @Column(name = "tipo", columnDefinition = "TEXT")
     private String tipo;
 
     @Column(name = "valor_multa", precision = 18, scale = 2)
@@ -51,7 +51,7 @@ public class IcmbioAutoInfracao {
     @Column(name = "apreensao", length = 50)
     private String apreensao;
 
-    @Column(name = "autuado", length = 500)
+    @Column(name = "autuado", columnDefinition = "TEXT")
     private String autuado;
 
     /** Documento apenas com digitos (indexado, base de busca). */
@@ -80,34 +80,34 @@ public class IcmbioAutoInfracao {
     @Column(name = "artigo_2", length = 100)
     private String artigo2;
 
-    @Column(name = "tipo_infra")
+    @Column(name = "tipo_infra", columnDefinition = "TEXT")
     private String tipoInfra;
 
-    @Column(name = "nome_uc")
+    @Column(name = "nome_uc", columnDefinition = "TEXT")
     private String nomeUc;
 
     @Column(name = "cnuc", length = 50)
     private String cnuc;
 
-    @Column(name = "municipio")
+    @Column(name = "municipio", columnDefinition = "TEXT")
     private String municipio;
 
-    @Column(name = "uf", length = 2)
+    @Column(name = "uf", length = 8)
     private String uf;
 
-    @Column(name = "termos_emb")
+    @Column(name = "termos_emb", columnDefinition = "TEXT")
     private String termosEmb;
 
-    @Column(name = "termos_apr")
+    @Column(name = "termos_apr", columnDefinition = "TEXT")
     private String termosApr;
 
-    @Column(name = "ordem_fisc")
+    @Column(name = "ordem_fisc", columnDefinition = "TEXT")
     private String ordemFisc;
 
-    @Column(name = "processo")
+    @Column(name = "processo", columnDefinition = "TEXT")
     private String processo;
 
-    @Column(name = "julgamento")
+    @Column(name = "julgamento", columnDefinition = "TEXT")
     private String julgamento;
 
     /** Geometria do auto (ponto). EPSG:4674 (SIRGAS 2000). Nao exposto em DTOs. */

@@ -110,7 +110,8 @@ public class IcmbioLoader {
         }
 
         long start = System.currentTimeMillis();
-        Map<Integer, Geometry> geometries = readShapefile(shp, "vw_num_auto");
+        // DBF trunca nomes de coluna em 10 chars: 'vw_num_auto' -> 'vw_num_aut'
+        Map<Integer, Geometry> geometries = readShapefile(shp, "vw_num_aut");
         Log.infof("ICMBio autos: %d geometrias lidas do SHP", geometries.size());
 
         int[] counters = {0, 0, 0, 0}; // inserted, withGeom, withoutGeom, duplicates
