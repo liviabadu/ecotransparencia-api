@@ -21,7 +21,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Carrega dados de Autos de Infracao do IBAMA a partir dos arquivos CSV no startup.
@@ -103,25 +105,32 @@ public class IbamaAutoInfracaoDataLoader {
 
         int totalInserted = 0;
         int totalErrors = 0;
+        int totalDuplicates = 0;
+        // Dedup global por SEQ_AUTO_INFRACAO entre todos os arquivos por ano:
+        // o mesmo auto pode aparecer em dois arquivos quando o IBAMA reprocessa.
+        Set<Long> seen = new HashSet<>();
 
         for (File csvFile : csvFiles) {
             Log.infof("Processing file: %s", csvFile.getName());
-            int[] result = loadFile(csvFile);
+            int[] result = loadFile(csvFile, seen);
             totalInserted += result[0];
             totalErrors += result[1];
+            totalDuplicates += result[2];
         }
 
         long elapsed = System.currentTimeMillis() - startTime;
         Log.info("Auto Infracao data load completed:");
         Log.infof("  - Files processed: %d", csvFiles.length);
         Log.infof("  - Total inserted: %d", totalInserted);
+        Log.infof("  - Total duplicates ignored: %d", totalDuplicates);
         Log.infof("  - Total errors: %d", totalErrors);
         Log.infof("  - Time: %.1f seconds", elapsed / 1000.0);
     }
 
-    private int[] loadFile(File csvFile) {
+    private int[] loadFile(File csvFile, Set<Long> seen) {
         int inserted = 0;
         int errors = 0;
+        int duplicates = 0;
         List<AutoInfracao> batch = new ArrayList<>(BATCH_SIZE);
 
         try (CSVReader csvReader = CsvParserBuilder
@@ -135,6 +144,10 @@ public class IbamaAutoInfracaoDataLoader {
                 try {
                     AutoInfracao auto = parseAutoInfracao(line);
                     if (auto == null) {
+                        continue;
+                    }
+                    if (!seen.add(auto.getSeqAutoInfracao())) {
+                        duplicates++;
                         continue;
                     }
                     batch.add(auto);
@@ -159,7 +172,7 @@ public class IbamaAutoInfracaoDataLoader {
             Log.errorf(e, "Error reading file: %s", csvFile.getName());
         }
 
-        return new int[]{inserted, errors};
+        return new int[]{inserted, errors, duplicates};
     }
 
     @Transactional

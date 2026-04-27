@@ -28,8 +28,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Loader hibrido do ICMBio.
@@ -111,7 +113,8 @@ public class IcmbioLoader {
         Map<Integer, Geometry> geometries = readShapefile(shp, "vw_num_auto");
         Log.infof("ICMBio autos: %d geometrias lidas do SHP", geometries.size());
 
-        int[] counters = {0, 0, 0}; // inserted, withGeom, withoutGeom
+        int[] counters = {0, 0, 0, 0}; // inserted, withGeom, withoutGeom, duplicates
+        Set<Integer> seen = new HashSet<>();
         List<IcmbioAutoInfracao> batch = new ArrayList<>(BATCH_SIZE);
 
         try {
@@ -119,6 +122,10 @@ public class IcmbioLoader {
                 try {
                     IcmbioAutoInfracao e = parseAuto(row);
                     if (e == null || e.getVwNumAuto() == null) return;
+                    if (!seen.add(e.getVwNumAuto())) {
+                        counters[3]++;
+                        return;
+                    }
                     Geometry g = geometries.get(e.getVwNumAuto());
                     if (g instanceof Point p) {
                         e.setLocalizacao(p);
@@ -149,8 +156,8 @@ public class IcmbioLoader {
         }
 
         long elapsed = System.currentTimeMillis() - start;
-        Log.infof("ICMBio autos load: inserted=%d withGeom=%d withoutGeom=%d in %.1fs",
-                counters[0], counters[1], counters[2], elapsed / 1000.0);
+        Log.infof("ICMBio autos load: inserted=%d withGeom=%d withoutGeom=%d duplicates=%d in %.1fs",
+                counters[0], counters[1], counters[2], counters[3], elapsed / 1000.0);
 
         markLoaded(SOURCE_AUTOS);
     }
@@ -171,7 +178,8 @@ public class IcmbioLoader {
         Map<Integer, Geometry> geometries = readShapefile(shp, "vw_num_emb");
         Log.infof("ICMBio embargos: %d geometrias lidas do SHP", geometries.size());
 
-        int[] counters = {0, 0, 0};
+        int[] counters = {0, 0, 0, 0};
+        Set<Integer> seen = new HashSet<>();
         List<IcmbioEmbargo> batch = new ArrayList<>(BATCH_SIZE);
 
         try {
@@ -179,6 +187,10 @@ public class IcmbioLoader {
                 try {
                     IcmbioEmbargo e = parseEmbargo(row);
                     if (e == null || e.getVwNumEmb() == null) return;
+                    if (!seen.add(e.getVwNumEmb())) {
+                        counters[3]++;
+                        return;
+                    }
                     Geometry g = geometries.get(e.getVwNumEmb());
                     if (g != null) {
                         e.setGeometria(g);
@@ -205,8 +217,8 @@ public class IcmbioLoader {
         }
 
         long elapsed = System.currentTimeMillis() - start;
-        Log.infof("ICMBio embargos load: inserted=%d withGeom=%d withoutGeom=%d in %.1fs",
-                counters[0], counters[1], counters[2], elapsed / 1000.0);
+        Log.infof("ICMBio embargos load: inserted=%d withGeom=%d withoutGeom=%d duplicates=%d in %.1fs",
+                counters[0], counters[1], counters[2], counters[3], elapsed / 1000.0);
 
         markLoaded(SOURCE_EMBARGOS);
     }
