@@ -264,11 +264,10 @@ class AsgScoreCalculatorTest {
 
             AsgScoreDto asg = calculator.calculate(Collections.emptyList(), List.of(auto));
 
-            // Score de embargos = 0, peso = 0.5
-            // Score de autos = 18, peso = 0.35
-            // NOVA LOGICA: Considera AMBAS as fontes (Autos E Embargos)
-            // Ponderado = (0*0.5 + 18*0.35) / (0.5 + 0.35) = 6.3 / 0.85 = 7.4 ~ 7
-            assertEquals(7, asg.getScore());
+            // Score de embargos = 0, peso = 0.25 (calibracao 2026-04-27)
+            // Score de autos = 18, peso = 0.18
+            // Ponderado = (0*0.25 + 18*0.18) / (0.25 + 0.18) = 3.24 / 0.43 = 7.53 ~ 8
+            assertEquals(8, asg.getScore());
             assertEquals("Baixo", asg.getRiskLevel());
             assertEquals(1, asg.getTotalOcorrencias());
             // Verifica que AMBAS as fontes estao no breakdown
@@ -312,7 +311,7 @@ class AsgScoreCalculatorTest {
                 .findFirst()
                 .orElseThrow();
             assertEquals(15, embargoComponent.getScore());
-            assertEquals(0.5, embargoComponent.getPeso());
+            assertEquals(0.25, embargoComponent.getPeso()); // calibracao ESG 60/20/20
             assertEquals(1, embargoComponent.getQuantidadeOcorrencias());
 
             ScoreComponentDto autoComponent = asg.getBreakdown().stream()
@@ -320,7 +319,7 @@ class AsgScoreCalculatorTest {
                 .findFirst()
                 .orElseThrow();
             assertEquals(8, autoComponent.getScore());
-            assertEquals(0.35, autoComponent.getPeso());
+            assertEquals(0.18, autoComponent.getPeso()); // calibracao ESG 60/20/20
             assertEquals(1, autoComponent.getQuantidadeOcorrencias());
         }
     }
