@@ -90,7 +90,7 @@ public class IcmbioEmbargo {
     @Column(name = "julgamento", columnDefinition = "TEXT")
     private String julgamento;
 
-    @Column(name = "area", precision = 18, scale = 4)
+    @Column(name = "area", columnDefinition = "NUMERIC")
     private BigDecimal area;
 
     @Column(name = "processo", columnDefinition = "TEXT")

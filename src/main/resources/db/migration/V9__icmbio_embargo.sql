@@ -25,7 +25,7 @@ CREATE TABLE icmbio_embargo (
     ano                             INTEGER,
     obs                             TEXT,
     julgamento                      TEXT,
-    area                            NUMERIC(18,4),
+    area                            NUMERIC,
     processo                        TEXT,
     geometria                       geometry(Geometry, 4674)
 );

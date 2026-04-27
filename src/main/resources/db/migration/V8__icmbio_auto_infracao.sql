@@ -9,7 +9,7 @@ CREATE TABLE icmbio_auto_infracao (
     serie                           VARCHAR(50),
     origem                          VARCHAR(50),
     tipo                            TEXT,
-    valor_multa                     NUMERIC(18,2),
+    valor_multa                     NUMERIC,
     embargo                         VARCHAR(50),
     apreensao                       VARCHAR(50),
     autuado                         TEXT,

@@ -42,7 +42,7 @@ public class IcmbioAutoInfracao {
     @Column(name = "tipo", columnDefinition = "TEXT")
     private String tipo;
 
-    @Column(name = "valor_multa", precision = 18, scale = 2)
+    @Column(name = "valor_multa", columnDefinition = "NUMERIC")
     private BigDecimal valorMulta;
 
     @Column(name = "embargo", length = 50)
