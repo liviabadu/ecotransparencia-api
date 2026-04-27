@@ -13,6 +13,8 @@ import br.com.ecotransparencia.entity.TrabalhoEscravoMte;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -118,17 +120,20 @@ public class AsgScoreCalculator {
             autosInfracao.size()
         ));
 
-        // CEIS e CNEP separados no breakdown (mesmo entity, discriminador diferente)
-        long ceisCount = sancoes.stream().filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CEIS).count();
-        long cnepCount = sancoes.stream().filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CNEP).count();
-        int ceisScore = calculateSancaoScore((int) ceisCount);
-        int cnepScore = calculateSancaoScore((int) cnepCount);
+        // CEIS e CNEP separados no breakdown (mesmo entity, discriminador diferente).
+        // Calibracao: categoria de sancao + esfera do orgao + transito em julgado + recencia.
+        List<SancaoAdmPublica> ceisList = sancoes.stream()
+                .filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CEIS).toList();
+        List<SancaoAdmPublica> cnepList = sancoes.stream()
+                .filter(s -> s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CNEP).toList();
+        int ceisScore = calculateSancaoScore(ceisList);
+        int cnepScore = calculateSancaoScore(cnepList);
         breakdown.add(new ScoreComponentDto(
-                FonteDados.CEIS.getDescricao(), ceisScore, FonteDados.CEIS.getPeso(), (int) ceisCount));
+                FonteDados.CEIS.getDescricao(), ceisScore, FonteDados.CEIS.getPeso(), ceisList.size()));
         breakdown.add(new ScoreComponentDto(
-                FonteDados.CNEP.getDescricao(), cnepScore, FonteDados.CNEP.getPeso(), (int) cnepCount));
+                FonteDados.CNEP.getDescricao(), cnepScore, FonteDados.CNEP.getPeso(), cnepList.size()));
 
-        int cepimScore = calculateSancaoScore(cepim.size());
+        int cepimScore = calculateCepimScore(cepim);
         breakdown.add(new ScoreComponentDto(
                 FonteDados.CEPIM.getDescricao(), cepimScore, FonteDados.CEPIM.getPeso(), cepim.size()));
 
@@ -137,14 +142,13 @@ public class AsgScoreCalculator {
                 FonteDados.MTE_TRABALHO_ESCRAVO.getDescricao(), mteScore,
                 FonteDados.MTE_TRABALHO_ESCRAVO.getPeso(), mte.size()));
 
-        // Fase C: ICMBio. Reusa criterios genericos de sancao por enquanto
-        // (TODO: ajustar com input do produto - pesos provisorios em FonteDados).
+        // Fase C: ICMBio com calibracao por UC de protecao integral + recencia.
         int icmbioAutoScore = calculateIcmbioAutoScore(icmbioAutos);
         breakdown.add(new ScoreComponentDto(
                 FonteDados.ICMBIO_AUTO.getDescricao(), icmbioAutoScore,
                 FonteDados.ICMBIO_AUTO.getPeso(), icmbioAutos.size()));
 
-        int icmbioEmbargoScore = calculateSancaoScore(icmbioEmbargos.size());
+        int icmbioEmbargoScore = calculateIcmbioEmbargoScore(icmbioEmbargos);
         breakdown.add(new ScoreComponentDto(
                 FonteDados.ICMBIO_EMBARGO.getDescricao(), icmbioEmbargoScore,
                 FonteDados.ICMBIO_EMBARGO.getPeso(), icmbioEmbargos.size()));
@@ -164,47 +168,116 @@ public class AsgScoreCalculator {
     }
 
     /**
-     * Score generico para sancoes administrativas / impedimentos.
-     *
-     * <p>TODO: criterio provisorio - 10 pontos por ocorrencia, capped em 100.
-     * Substituir por criterio de produto (ex.: peso por categoria de sancao,
-     * valor da multa, esfera do orgao).
+     * @deprecated Score legado (10 pontos por ocorrencia). Use o overload
+     * {@link #calculateSancaoScore(List)} que considera categoria, esfera,
+     * transito em julgado e recencia.
      */
+    @Deprecated
     int calculateSancaoScore(int count) {
         return Math.min(count * 10, 100);
     }
 
     /**
-     * Score para autos de infracao do ICMBio.
+     * Score calibrado para sancoes administrativas (CEIS+CNEP).
      *
-     * <p>TODO: criterio provisorio - 12 pontos por auto + bonus por valor da
-     * multa similar ao calculo do IBAMA. Ajustar com input do produto.
+     * <p>Por sancao: pontos base ditados pela categoria (inidoneidade > impedimento >
+     * suspensao > multa > generico), multiplicado por esfera do orgao
+     * (federal=1.0, estadual=0.7, municipal=0.5), por trans em julgado
+     * (sim=1.0, nao=0.6) e decay temporal por dataInicioSancao. CNEP soma
+     * pontos extras por valor da multa.
      */
-    int calculateIcmbioAutoScore(List<IcmbioAutoInfracao> autos) {
-        int score = 0;
-        for (IcmbioAutoInfracao a : autos) {
-            score += 12;
-            score += calculateMultaPoints(a.getValorMulta());
+    int calculateSancaoScore(List<SancaoAdmPublica> sancoes) {
+        double total = 0;
+        for (SancaoAdmPublica s : sancoes) {
+            double pts = baseScoreByCategoria(s.getCategoriaSancao());
+            pts *= multiplierByEsfera(s.getEsferaOrgao());
+            pts *= multiplierByTransito(s.getDataTransitoJulgado());
+            // CNEP: bonus por valor da multa (CEIS nao tem)
+            if (s.getCadastro() == br.com.ecotransparencia.domain.CadastroSancao.CNEP) {
+                pts += calculateMultaPoints(s.getValorMulta());
+            }
+            pts *= recencyMultiplier(s.getDataInicioSancao());
+            total += pts;
         }
-        return Math.min(score, 100);
+        return Math.min((int) Math.round(total), 100);
     }
 
     /**
-     * Score para Lista Suja MTE.
+     * Score calibrado para CEPIM. Pondera pelo motivo do impedimento:
+     * tomada de contas especial (mais grave) > irregularidade > omissao >
+     * generico.
+     */
+    int calculateCepimScore(List<Cepim> cepim) {
+        int total = 0;
+        for (Cepim c : cepim) {
+            total += cepimMotivoPoints(c.getMotivoImpedimento());
+        }
+        return Math.min(total, 100);
+    }
+
+    /**
+     * Score calibrado para autos de infracao do ICMBio.
      *
-     * <p>TODO: criterio provisorio - 15 pontos por ocorrencia (peso maior que
-     * sancoes administrativas dado o nivel de gravidade), +1 ponto por
-     * trabalhador envolvido. Capped em 100.
+     * <p>Por auto: 12 base + 8 se UC de protecao integral (PARNA, REBIO, ESEC,
+     * MONA, REVIS) + faixa por valor da multa. Decay temporal por data/ano.
+     */
+    int calculateIcmbioAutoScore(List<IcmbioAutoInfracao> autos) {
+        double total = 0;
+        for (IcmbioAutoInfracao a : autos) {
+            double pts = 12;
+            if (isUcProtecaoIntegral(a.getNomeUc())) {
+                pts += 8;
+            }
+            pts += calculateMultaPoints(a.getValorMulta());
+            pts *= recencyMultiplierFromDateOrYear(a.getData(), a.getAno());
+            total += pts;
+        }
+        return Math.min((int) Math.round(total), 100);
+    }
+
+    /**
+     * Score calibrado para embargos do ICMBio.
+     *
+     * <p>Por embargo: 12 base + 8 se UC de protecao integral + 1 ponto a cada
+     * 10 hectares de area embargada (max +10). Decay temporal por data/ano.
+     */
+    int calculateIcmbioEmbargoScore(List<IcmbioEmbargo> embargos) {
+        double total = 0;
+        for (IcmbioEmbargo e : embargos) {
+            double pts = 12;
+            if (isUcProtecaoIntegral(e.getNomeUc())) {
+                pts += 8;
+            }
+            if (e.getArea() != null) {
+                int areaPts = Math.min(e.getArea().intValue() / 10, 10);
+                pts += areaPts;
+            }
+            pts *= recencyMultiplierFromDateOrYear(e.getData(), e.getAno());
+            total += pts;
+        }
+        return Math.min((int) Math.round(total), 100);
+    }
+
+    /**
+     * Score calibrado para MTE (Lista Suja).
+     *
+     * <p>Por inclusao: 15 base + 1 por trabalhador envolvido + 5 se ha decisao
+     * administrativa de procedencia. Decay temporal por anoAcaoFiscal.
      */
     int calculateMteScore(List<TrabalhoEscravoMte> mte) {
-        int score = 0;
+        double total = 0;
         for (TrabalhoEscravoMte t : mte) {
-            score += 15;
+            double pts = 15;
             if (t.getTrabalhadoresEnvolvidos() != null) {
-                score += t.getTrabalhadoresEnvolvidos();
+                pts += t.getTrabalhadoresEnvolvidos();
             }
+            if (t.getDecisaoAdmProcedencia() != null) {
+                pts += 5;
+            }
+            pts *= recencyMultiplier(t.getAnoAcaoFiscal());
+            total += pts;
         }
-        return Math.min(score, 100);
+        return Math.min((int) Math.round(total), 100);
     }
 
     // Fator de redução para embargos baixados (10% do valor normal)
@@ -254,6 +327,10 @@ public class AsgScoreCalculator {
                 embargoPoints *= FATOR_EMBARGO_BAIXADO;
             }
 
+            // Decay temporal por data do embargo (null -> neutro 1.0).
+            LocalDateTime dt = embargo.getDatEmbargo();
+            embargoPoints *= recencyMultiplier(dt != null ? dt.toLocalDate() : null);
+
             score += embargoPoints;
         }
 
@@ -275,7 +352,7 @@ public class AsgScoreCalculator {
      *   - Acima de R$ 100.000: +12
      */
     int calculateAutoInfracaoScore(List<AutoInfracao> autos) {
-        int score = 0;
+        double score = 0;
 
         for (AutoInfracao auto : autos) {
             // Ignora autos cancelados
@@ -283,32 +360,40 @@ public class AsgScoreCalculator {
                 continue;
             }
 
+            double autoPts = 0;
+
             // Base por auto
-            score += 8;
+            autoPts += 8;
 
             // Conduta intencional
             if ("Intencional".equalsIgnoreCase(auto.getMotivacaoConduta())) {
-                score += 5;
+                autoPts += 5;
             }
 
             // Efeito no meio ambiente
             String efeito = auto.getEfeitoMeioAmbiente();
             if (efeito != null) {
                 if (efeito.toLowerCase().contains("grave") || efeito.toLowerCase().contains("severo")) {
-                    score += 3;
+                    autoPts += 3;
                 }
             }
 
             // Bioma sensivel
             if (isBiomaSensivel(auto.getBiomasAtingidos())) {
-                score += 5;
+                autoPts += 5;
             }
 
             // Valor da multa
-            score += calculateMultaPoints(auto.getValorAutoInfracao());
+            autoPts += calculateMultaPoints(auto.getValorAutoInfracao());
+
+            // Decay temporal por data do auto (null -> neutro 1.0).
+            LocalDateTime dt = auto.getDataHoraAutoInfracao();
+            autoPts *= recencyMultiplier(dt != null ? dt.toLocalDate() : null);
+
+            score += autoPts;
         }
 
-        return Math.min(score, 100);
+        return Math.min((int) Math.round(score), 100);
     }
 
     private int calculateMultaPoints(BigDecimal valor) {
@@ -336,6 +421,114 @@ public class AsgScoreCalculator {
         String biomaLower = bioma.toLowerCase();
         return BIOMAS_SENSIVEIS.stream()
             .anyMatch(b -> biomaLower.contains(b.toLowerCase()));
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers de calibracao (Fase de calibracao 2026-04-27)
+    // ---------------------------------------------------------------
+
+    /**
+     * Pontos base por categoria de sancao (CEIS/CNEP):
+     * inidoneidade > impedimento/proibicao > suspensao > multa > demais.
+     */
+    static double baseScoreByCategoria(String categoria) {
+        if (categoria == null) return 8;
+        String c = categoria.toLowerCase();
+        if (c.contains("inidoneidade") || c.contains("inidonei") || c.contains("inidoneo")) {
+            return 25;
+        }
+        if (c.contains("impedimento") || c.contains("proibi") || c.contains("impedida")) {
+            return 12;
+        }
+        if (c.contains("suspens")) {
+            return 10;
+        }
+        if (c.contains("multa") || c.contains("publica")) {
+            return 8;
+        }
+        return 6;
+    }
+
+    /**
+     * Multiplicador por esfera do orgao sancionador.
+     * Federal pesa mais que estadual, que pesa mais que municipal.
+     * Null -> neutro (0.7) para nao penalizar dados incompletos.
+     */
+    static double multiplierByEsfera(String esfera) {
+        if (esfera == null) return 0.7;
+        String e = esfera.toUpperCase();
+        if (e.contains("FEDERAL")) return 1.0;
+        if (e.contains("ESTADUAL") || e.contains("DISTRITAL")) return 0.7;
+        if (e.contains("MUNICIPAL")) return 0.5;
+        return 0.7;
+    }
+
+    /**
+     * Multiplicador por trans em julgado: confirmada vale 1.0,
+     * ainda em recurso (data nula) vale 0.6.
+     */
+    static double multiplierByTransito(LocalDate dataTransitoJulgado) {
+        return dataTransitoJulgado != null ? 1.0 : 0.6;
+    }
+
+    /**
+     * Decay temporal: ocorrencias recentes pesam mais.
+     * Null -> 1.0 (neutro, nao penaliza dados sem data).
+     */
+    static double recencyMultiplier(LocalDate date) {
+        if (date == null) return 1.0;
+        int years = LocalDate.now().getYear() - date.getYear();
+        if (years < 0) return 1.0;
+        if (years <= 5) return 1.0;
+        if (years <= 10) return 0.7;
+        if (years <= 20) return 0.4;
+        return 0.2;
+    }
+
+    /**
+     * Decay temporal a partir de ano apenas (Integer). Null -> 1.0.
+     */
+    static double recencyMultiplier(Integer year) {
+        if (year == null) return 1.0;
+        return recencyMultiplier(LocalDate.of(year, 1, 1));
+    }
+
+    /**
+     * Decay preferindo {@code data} (LocalDate) sobre {@code ano} (Integer)
+     * quando ambos disponiveis. Usado pelo ICMBio.
+     */
+    static double recencyMultiplierFromDateOrYear(LocalDate data, Integer ano) {
+        if (data != null) return recencyMultiplier(data);
+        return recencyMultiplier(ano);
+    }
+
+    /**
+     * Detecta UC de protecao integral (Lei 9.985/2000 - SNUC) pelo nome.
+     * UCs de protecao integral (PARNA, REBIO, ESEC, MONA, REVIS) sao mais
+     * restritivas que as de uso sustentavel (RESEX, FLONA, APA, RDS, ARIE).
+     */
+    static boolean isUcProtecaoIntegral(String nomeUc) {
+        if (nomeUc == null) return false;
+        String u = nomeUc.toUpperCase();
+        return u.contains("PARNA") || u.contains("PARQUE NACIONAL") ||
+               u.contains("REBIO") || u.contains("RESERVA BIOLOGICA") || u.contains("RESERVA BIOLÓGICA") ||
+               u.contains("ESEC") || u.contains("ESTACAO ECOLOGICA") || u.contains("ESTAÇÃO ECOLÓGICA") ||
+               u.contains("MONA") || u.contains("MONUMENTO NATURAL") ||
+               u.contains("REVIS") || u.contains("REFUGIO DE VIDA") || u.contains("REFÚGIO DE VIDA");
+    }
+
+    /**
+     * Pontos por motivo de impedimento CEPIM. Tomada de contas especial e
+     * mais grave que irregularidade na execucao, que e mais grave que
+     * omissao de prestacao de contas.
+     */
+    static int cepimMotivoPoints(String motivo) {
+        if (motivo == null) return 8;
+        String m = motivo.toLowerCase();
+        if (m.contains("tomada de contas") || m.contains("tomada de contas especial")) return 15;
+        if (m.contains("irregularidade") || m.contains("desvio")) return 12;
+        if (m.contains("omiss") || m.contains("nao apresent") || m.contains("não apresent")) return 8;
+        return 10;
     }
 
     /**
