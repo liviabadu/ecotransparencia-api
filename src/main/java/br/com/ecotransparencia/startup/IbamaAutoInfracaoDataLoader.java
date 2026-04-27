@@ -1,7 +1,9 @@
 package br.com.ecotransparencia.startup;
 
 import br.com.ecotransparencia.entity.AutoInfracao;
+import br.com.ecotransparencia.entity.DataLoadMarker;
 import br.com.ecotransparencia.repository.AutoInfracaoRepository;
+import br.com.ecotransparencia.repository.DataLoadMarkerRepository;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -36,6 +38,9 @@ public class IbamaAutoInfracaoDataLoader {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int BATCH_SIZE = 1000;
 
+    /** Identificador de fonte usado em data_load_marker. */
+    static final String SOURCE = "ibama_auto_infracao";
+
     @ConfigProperty(name = "app.data.load-autos-on-startup", defaultValue = "false")
     boolean loadOnStartup;
 
@@ -45,19 +50,42 @@ public class IbamaAutoInfracaoDataLoader {
     @Inject
     AutoInfracaoRepository repository;
 
+    @Inject
+    DataLoadMarkerRepository markerRepository;
+
     void onStart(@Observes StartupEvent event) {
         if (!loadOnStartup) {
             Log.info("Auto Infracao data loading disabled (app.data.load-autos-on-startup=false)");
             return;
         }
 
-        long count = repository.count();
-        if (count > 0) {
-            Log.infof("Database already populated with %d auto infracao records, skipping load", count);
+        if (isAlreadyLoaded()) {
+            Log.infof("Data already loaded for source=%s, skipping Auto Infracao data load", SOURCE);
             return;
         }
 
         loadData();
+        markLoaded();
+    }
+
+    /**
+     * Indica se a fonte {@link #SOURCE} ja foi carregada anteriormente.
+     */
+    boolean isAlreadyLoaded() {
+        return markerRepository.findById(SOURCE) != null;
+    }
+
+    /**
+     * Marca a fonte como carregada, em uma transacao propria.
+     */
+    @Transactional
+    void markLoaded() {
+        DataLoadMarker marker = new DataLoadMarker();
+        marker.setSource(SOURCE);
+        LocalDateTime now = LocalDateTime.now();
+        marker.setLoadedAt(now);
+        marker.setVersion(now.toString());
+        markerRepository.persist(marker);
     }
 
     void loadData() {
